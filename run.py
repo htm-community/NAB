@@ -39,15 +39,13 @@ def getDetectorClassConstructors(detectors):
   names. Assumes the detectors have been imported.
   """
   #handle py2 detectors separately:
-  py2detectors = ",".join([d for d in detectors if (d == "numenta" or d == "numentaTM" or d == "htmjava") ])
-  if py2detectors:
+  py2detectors = ",".join([d for d in detectors if (d == "numenta" or d == "numentaTM") ])
+  if py2detectors or "htmjava" in detectors:
       ENV_PY2="./pyenv2/bin/python"
       argss=[]
       if args.numCPUs is not None:
           argss.append(" --numCPUs="+str(args.numCPUs))
       argss.append("--skipConfirmation") #always skip confirmation here
-      if args.detectors is not None:
-        argss.append("--detectors="+py2detectors)
       if args.dataDir:
         argss.append("--dataDir="+str(args.dataDir))
       if args.profilesFile:
@@ -56,11 +54,16 @@ def getDetectorClassConstructors(detectors):
         argss.append("--resultsDir="+str(args.resultsDir))
       if args.windowsFile:
         argss.append("--windowsFile="+str(args.windowsFile))
-      
-      subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
+
+      if py2detectors: # Numenta
+        argss.append("--detectors="+py2detectors)
+        subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
+      if "htmjava" in detectors: # htm.java
+        subprocess.call([ENV_PY2, "./nab/detectors/htmjava/run.py"]+ argss)
 
   # normal, py3 detectors
-  detectors = [d for d in detectors if d not in py2detectors]
+  py2detectors+=",htmjava"
+  detectors = [d for d in detectors if d not in py2detectors] # rm numenta*, htmjava
   detectorConstructors = {
   d : globals()[detectorNameToClass(d)] for d in detectors}
 
@@ -242,7 +245,6 @@ if __name__ == "__main__":
   if "htmjava" in args.detectors:
     ENV_PY2="./pyenv2/bin/python"
     subprocess.call([ENV_PY2, "from nab.detectors.htmjava.htmjava_detector import HtmjavaDetector"])
-
 
   if args.skipConfirmation or checkInputs(args):
     main(args)
