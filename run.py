@@ -21,6 +21,7 @@
 
 import argparse
 import os
+import subprocess
 try:
   import simplejson as json
 except ImportError:
@@ -37,6 +38,29 @@ def getDetectorClassConstructors(detectors):
   detectors and returns them in a dict. The dict maps detector name to class
   names. Assumes the detectors have been imported.
   """
+  #handle py2 detectors separately:
+  py2detectors = ",".join([d for d in detectors if (d == "numenta" or d == "numentaTM" or d == "htmjava") ])
+  if py2detectors:
+      ENV_PY2="./pyenv2/bin/python"
+      argss=[]
+      if args.numCPUs is not None:
+          argss.append(" --numCPUs="+str(args.numCPUs))
+      argss.append("--skipConfirmation") #always skip confirmation here
+      if args.detectors is not None:
+        argss.append("--detectors="+py2detectors)
+      if args.dataDir:
+        argss.append("--dataDir="+str(args.dataDir))
+      if args.profilesFile:
+        argss.append("--profilesFile="+str(args.profilesFile))
+      if args.resultsDir:
+        argss.append("--resultsDir="+str(args.resultsDir))
+      if args.windowsFile:
+        argss.append("--windowsFile="+str(args.windowsFile))
+      
+      subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
+
+  # normal, py3 detectors
+  detectors = [d for d in detectors if d not in py2detectors]
   detectorConstructors = {
   d : globals()[detectorNameToClass(d)] for d in detectors}
 
@@ -132,9 +156,9 @@ if __name__ == "__main__":
   parser.add_argument("-d", "--detectors",
                     nargs="*",
                     type=str,
-                    default=["null", "numenta", "random", "bayesChangePt",
-                             "windowedGaussian", "expose", "relativeEntropy",
-                             "earthgeckoSkyline"],
+                    default=["numenta", "numentaTM", "htmjava", "null", "random",
+                             "bayesChangePt", "windowedGaussian", "expose",
+                             "relativeEntropy", "earthgeckoSkyline"],
                     help="Comma separated list of detector(s) to use, e.g. "
                          "null,numenta")
 
@@ -209,6 +233,16 @@ if __name__ == "__main__":
 
   if "earthgeckoSkyline" in args.detectors:
     from nab.detectors.earthgecko_skyline.earthgecko_skyline_detector import EarthgeckoSkylineDetector
+  if "numenta" in args.detectors:
+    ENV_PY2="./pyenv2/bin/python"
+    subprocess.call([ENV_PY2, "from nab.detectors.numenta.numenta_detector import NumentaDetector"])
+  if "numentaTM" in args.detectors:
+    ENV_PY2="./pyenv2/bin/python"
+    subprocess.call([ENV_PY2, "from nab.detectors.numenta.numentaTM_detector import NumentaTMDetector"])
+  if "htmjava" in args.detectors:
+    ENV_PY2="./pyenv2/bin/python"
+    subprocess.call([ENV_PY2, "from nab.detectors.htmjava.htmjava_detector import HtmjavaDetector"])
+
 
   if args.skipConfirmation or checkInputs(args):
     main(args)
