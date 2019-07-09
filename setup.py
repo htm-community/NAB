@@ -113,3 +113,12 @@ if __name__ == "__main__":
       ],
     },
   )
+
+  #install py2 dependencies if possible
+  try:
+    import os
+    os.system('/bin/bash ./install_py2_detectors.sh')
+  except:
+    print("Unable to install python2 dependencies: numenta, numentaTM, htmjava detectors not available!")
+    
+
