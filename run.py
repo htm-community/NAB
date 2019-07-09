@@ -39,13 +39,15 @@ def getDetectorClassConstructors(detectors):
   names. Assumes the detectors have been imported.
   """
   #handle py2 detectors separately:
-  py2detectors = ",".join([d for d in detectors if (d == "numenta" or d == "numentaTM") ])
-  if py2detectors or ("htmjava" in detectors):
+  py2detectors = ",".join([d for d in detectors if (d == "numenta" or d == "numentaTM" or d == "htmjava") ])
+  if py2detectors:
       ENV_PY2="./pyenv2/bin/python"
       argss=[]
       if args.numCPUs is not None:
           argss.append(" --numCPUs="+str(args.numCPUs))
       argss.append("--skipConfirmation") #always skip confirmation here
+      if args.detectors is not None:
+        argss.append("--detectors="+py2detectors)
       if args.dataDir:
         argss.append("--dataDir="+str(args.dataDir))
       if args.profilesFile:
