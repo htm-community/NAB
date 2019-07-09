@@ -21,7 +21,7 @@ python --version
 
 # 1/ Numenta detector
 pip install nupic --force
-python nab/detectors/numenta/setup.py develop 
+python nab/detectors/numenta/setup.py install --force 
 
 # 2/ htmjava detector
 
@@ -31,7 +31,7 @@ python nab/detectors/numenta/setup.py develop
 cd ./nab/detectors/htmjava/nab/detectors/htmjava #inception, I know :P 
 gradle clean build || exit
 cd ${REPO}
-python nab/detectors/htmjava/setup.py develop
+python nab/detectors/htmjava/setup.py install --force
 
 echo "Installation of Py2 detectors finished:"
 pip list | grep nab

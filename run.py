@@ -40,7 +40,7 @@ def getDetectorClassConstructors(detectors):
   """
   #handle py2 detectors separately:
   py2detectors = ",".join([d for d in detectors if (d == "numenta" or d == "numentaTM") ])
-  if py2detectors or "htmjava" in detectors:
+  if py2detectors or ("htmjava" in detectors):
       ENV_PY2="./pyenv2/bin/python"
       argss=[]
       if args.numCPUs is not None:
@@ -55,11 +55,11 @@ def getDetectorClassConstructors(detectors):
       if args.windowsFile:
         argss.append("--windowsFile="+str(args.windowsFile))
 
+      if "htmjava" in detectors: # htm.java
+        subprocess.call([ENV_PY2, "./nab/detectors/htmjava/run.py"]+ argss)
       if py2detectors: # Numenta
         argss.append("--detectors="+py2detectors)
         subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
-      if "htmjava" in detectors: # htm.java
-        subprocess.call([ENV_PY2, "./nab/detectors/htmjava/run.py"]+ argss)
 
   # normal, py3 detectors
   py2detectors+=",htmjava"

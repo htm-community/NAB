@@ -17,3 +17,5 @@ scripts/.ipynb_checkpoints/
 *resultsSummary*
 
 pyenv2/
+build/
+dist/
