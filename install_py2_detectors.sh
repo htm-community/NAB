@@ -20,7 +20,6 @@ python --version
 ## Install Python 2 detectors:
 
 # 1/ Numenta detector
-pip install nupic --force
 python nab/detectors/numenta/setup.py install --force 
 
 # 2/ htmjava detector
