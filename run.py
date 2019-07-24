@@ -203,12 +203,6 @@ if __name__ == "__main__":
   if "bayesChangePt" in args.detectors:
     from nab.detectors.bayes_changept.bayes_changept_detector import (
       BayesChangePtDetector)
-  if "numenta" in args.detectors:
-    from nab.detectors.numenta.numenta_detector import NumentaDetector
-  if "htmjava" in args.detectors:
-    from nab.detectors.htmjava.htmjava_detector import HtmjavaDetector
-  if "numentaTM" in args.detectors:
-    from nab.detectors.numenta.numentaTM_detector import NumentaTMDetector
   if "null" in args.detectors:
     from nab.detectors.null.null_detector import NullDetector
   if "random" in args.detectors:
@@ -225,19 +219,17 @@ if __name__ == "__main__":
   if "relativeEntropy" in args.detectors:
     from nab.detectors.relative_entropy.relative_entropy_detector import (
       RelativeEntropyDetector)
-
   # To run expose detector, you must have sklearn version 0.16.1 installed.
   # Higher versions of sklearn may not be compatible with numpy version 1.9.2
   # required to run nupic.
   if "expose" in args.detectors:
     from nab.detectors.expose.expose_detector import ExposeDetector
-
   if "contextOSE" in args.detectors:
     from nab.detectors.context_ose.context_ose_detector import (
     ContextOSEDetector )
-
   if "earthgeckoSkyline" in args.detectors:
     from nab.detectors.earthgecko_skyline.earthgecko_skyline_detector import EarthgeckoSkylineDetector
+  # Special hacks for detectors requiring Python 2:
   if "numenta" in args.detectors:
     ENV_PY2="./pyenv2/bin/python"
     subprocess.call([ENV_PY2, "from nab.detectors.numenta.numenta_detector import NumentaDetector"])
