@@ -18,6 +18,7 @@ python --version
 ## Install Python 2 detectors:
 
 # 1/ Numenta detector
+pip install -r nab/detectors/numenta/requirements.txt
 python nab/detectors/numenta/setup.py install --force 
 
 # 2/ htmjava detector
@@ -28,6 +29,7 @@ python nab/detectors/numenta/setup.py install --force
 cd ${REPO}/nab/detectors/htmjava/
 gradle clean build || exit
 cd ${REPO}
+pip install -r nab/detectors/htmjava/requirements.txt
 python nab/detectors/htmjava/setup.py install --force
 
 echo "Installation of Py2 detectors finished:"

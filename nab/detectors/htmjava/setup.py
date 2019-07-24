@@ -26,7 +26,6 @@ from setuptools import setup, find_packages
 REPO_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-
 # Utility function to read the README file.
 # Used for the long_description.  It"s nice, because now 1) we have a top level
 # README file and 2) it"s easier to type in the README file than to put a raw
@@ -74,7 +73,7 @@ def findRequirements():
   Read the requirements.txt file and parse into requirements for setup's
   install_requirements option.
   """
-  requirementsPath = os.path.join(REPO_DIR, "nab", "detectors", "htmjava", "requirements.txt")
+  requirementsPath = os.path.join(REPO_DIR, "requirements.txt")
   requirements = parseFile(requirementsPath)
 
   if nupicInstalled():
