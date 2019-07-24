@@ -28,8 +28,8 @@ REPO_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 # Utility function to read the README file.
-# Used for the long_description.  It's nice, because now 1) we have a top level
-# README file and 2) it's easier to type in the README file than to put a raw
+# Used for the long_description.  It"s nice, because now 1) we have a top level
+# README file and 2) it"s easier to type in the README file than to put a raw
 # string in below ...
 def read(fname):
   with open(os.path.join(os.path.dirname(__file__), fname)) as f:
@@ -97,29 +97,19 @@ if __name__ == "__main__":
   requirements = findRequirements()
 
   setup(
-    name="nab",
+    name="nab-detector-numenta",
     version="1.0",
     author="Alexander Lavin",
     author_email="nab@numenta.org",
     description=(
-      "Numenta Anomaly Benchmark: A benchmark for streaming anomaly prediction"),
+      "Numenta, NumentaTM detectors for NAB in Python 2"),
     license="AGPL",
     packages=find_packages(),
     long_description=read("README.md"),
     install_requires=requirements,
-    include_package_data=True,
     entry_points={
       "console_scripts": [
         "nab-plot = nab.plot:main",
       ],
     },
   )
-
-  #install py2 dependencies if possible
-  try:
-    import os
-    os.system('/bin/bash ./install_py2_detectors.sh')
-  except:
-    print("Unable to install python2 dependencies: numenta, numentaTM, htmjava detectors not available!")
-    
-

@@ -4,7 +4,7 @@
 
 data_test/
 deprecated/
-nab.egg-info/
+*.egg-info/
 .idea/
 .project
 .pydevproject
@@ -13,5 +13,9 @@ nab/detectors/htmjava/.pydevproject
 scripts/.ipynb_checkpoints/
 
 # Generated files
-
+plot_*/
 *resultsSummary*
+
+pyenv2/
+build/
+dist/
