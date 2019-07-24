@@ -13,8 +13,6 @@ echo $REPO
 virtualenv --python=python2 ${REPO}/pyenv2
 source ${REPO}/pyenv2/bin/activate
 
-ls $REPO
-
 python --version
 
 ## Install Python 2 detectors:
@@ -27,7 +25,7 @@ python nab/detectors/numenta/setup.py install --force
 [ ! -x "`which gradle`" ] && echo "htmjava detector requires gradle to build" && exit
 [ ! -x "`which java`" ] && "htmjava requires java! :) Preferably Java 8" && exit
 
-cd ./nab/detectors/htmjava/nab/detectors/htmjava #inception, I know :P 
+cd ${REPO}/nab/detectors/htmjava/
 gradle clean build || exit
 cd ${REPO}
 python nab/detectors/htmjava/setup.py install --force
