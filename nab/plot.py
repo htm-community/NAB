@@ -262,7 +262,6 @@ class PlotNAB(object):
             title=yLabel,
             domain=[0, 1],
             autorange=True,
-            autotick=True,
         ),
         "barmode": "stack",
         "bargap": 0}
