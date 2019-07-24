@@ -20,15 +20,12 @@
 
 import math
 
-from nupic.algorithms import anomaly_likelihood
-from nupic.frameworks.opf.common_models.cluster_params import (
-  getScalarMetricWithTimeOfDayAnomalyParams)
-try:
-  from nupic.frameworks.opf.model_factory import ModelFactory
-except:
-  # Try importing it the old way (version < 0.7.0.dev0)
-  from nupic.frameworks.opf.modelfactory import ModelFactory
+# htm.core imports
+from htm.bindings.algorithms import SpatialPooler   as SP
+from htm.bindings.algorithms import TemporalMemory  as TM
+from htm.bindings.algorithms import Predictor
 
+from htm.algorithms.anomaly_likelihood import AnomalyLikelihood
 from nab.detectors.base import AnomalyDetector
 
 # Fraction outside of the range of values seen so far that will be considered
@@ -39,17 +36,15 @@ SPATIAL_TOLERANCE = 0.05
 
 
 
-class NumentaDetector(AnomalyDetector):
+class HtmcoreDetector(AnomalyDetector):
   """
   This detector uses an HTM based anomaly detection technique.
   """
 
   def __init__(self, *args, **kwargs):
 
-    super(NumentaDetector, self).__init__(*args, **kwargs)
+    super(HtmcoreDetector, self).__init__(*args, **kwargs)
 
-    self.model = None
-    self.sensorParams = None
     self.anomalyLikelihood = None
     # Keep track of value range for spatial anomaly detection
     self.minVal = None
@@ -64,7 +59,7 @@ class NumentaDetector(AnomalyDetector):
 
   def getAdditionalHeaders(self):
     """Returns a list of strings."""
-    return ["raw_score"]
+    return ["raw_score"] #TODO add "prediction"
 
 
   def handleRecord(self, inputData):
@@ -74,16 +69,16 @@ class NumentaDetector(AnomalyDetector):
     and "rawScore" corresponds to "anomaly_score". Sorry about that.
     """
     # Send it to Numenta detector and get back the results
-    result = self.model.run(inputData)
+    result = [] #FIXME self.model.run(inputData)
 
     # Get the value
     value = inputData["value"]
 
     # Retrieve the anomaly score and write it to a file
-    rawScore = result.inferences["anomalyScore"]
+    rawScore = 0.5 #FIXME result.inferences["anomalyScore"]
 
     # Update min/max values and check if there is a spatial anomaly
-    spatialAnomaly = False
+    spatialAnomaly = False #TODO make this computed in SP (and later improve)
     if self.minVal != self.maxVal:
       tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
       maxExpected = self.maxVal + tolerance
@@ -97,10 +92,9 @@ class NumentaDetector(AnomalyDetector):
 
     if self.useLikelihood:
       # Compute log(anomaly likelihood)
-      anomalyScore = self.anomalyLikelihood.anomalyProbability(
-        inputData["value"], rawScore, inputData["timestamp"])
+      anomalyScore = self.anomalyLikelihood.anomalyProbability(inputData["value"], rawScore, inputData["timestamp"])
       logScore = self.anomalyLikelihood.computeLogLikelihood(anomalyScore)
-      finalScore = logScore
+      finalScore = logScore #TODO returls logScore and not probability? Fix that in our Likelihood.cpp; #TODO TM to provide anomaly {none, raw, likelihood} 
     else:
       finalScore = rawScore
 
@@ -113,25 +107,14 @@ class NumentaDetector(AnomalyDetector):
   def initialize(self):
     # Get config params, setting the RDSE resolution
     rangePadding = abs(self.inputMax - self.inputMin) * 0.2
-    modelParams = getScalarMetricWithTimeOfDayAnomalyParams(
-      metricData=[0],
-      minVal=self.inputMin-rangePadding,
-      maxVal=self.inputMax+rangePadding,
-      minResolution=0.001,
-      tmImplementation = "cpp"
-    )["modelConfig"]
-
-    self._setupEncoderParams(
-      modelParams["modelParams"]["sensorParams"]["encoders"])
-
-    self.model = ModelFactory.create(modelParams)
-
-    self.model.enableInference({"predictedField": "value"})
+    minVal=self.inputMin-rangePadding
+    maxVal=self.inputMax+rangePadding
+    minResolution=0.001 #TODO there params should form default_params for encoder etc
 
     if self.useLikelihood:
       # Initialize the anomaly likelihood object
       numentaLearningPeriod = int(math.floor(self.probationaryPeriod / 2.0))
-      self.anomalyLikelihood = anomaly_likelihood.AnomalyLikelihood(
+      self.anomalyLikelihood = AnomalyLikelihood( #TODO make these default for py anomaly_likelihood? as NAB is likely tuned for best Likelihood!
         learningPeriod=numentaLearningPeriod,
         estimationSamples=self.probationaryPeriod-numentaLearningPeriod,
         reestimationPeriod=100
