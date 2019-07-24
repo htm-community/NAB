@@ -47,8 +47,8 @@ def getDetectorClassConstructors(detectors):
       if args.numCPUs is not None:
           argss.append(" --numCPUs="+str(args.numCPUs))
       argss.append("--skipConfirmation") #always skip confirmation here
-      if args.detectors is not None:
-        argss.append("--detectors="+py2detectors)
+ #     if args.detectors is not None:
+ #       argss.append("--detectors="+py2detectors)
       if args.dataDir:
         argss.append("--dataDir="+str(args.dataDir))
       if args.profilesFile:
@@ -58,17 +58,15 @@ def getDetectorClassConstructors(detectors):
       if args.windowsFile:
         argss.append("--windowsFile="+str(args.windowsFile))
 
-      if "htmjava" in detectors: # htm.java
-        subprocess.call([ENV_PY2, "./nab/detectors/htmjava/run.py"]+ argss)
-      if py2detectors: # Numenta
-        argss.append("--detectors="+py2detectors)
-        subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
-
-  # normal, py3 detectors
+  if "htmjava" in py2detectors: # htm.java
+    subprocess.call([ENV_PY2, "./nab/detectors/htmjava/run.py"]+ argss)
+  elif "numenta" in py2detectors or "numentaTM" in py2detectors: # Numenta*
+    argss.append("--detectors="+py2detectors)
+    subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
+    
   detectors = [d for d in detectors if d not in py2detectors] # rm numenta*, htmjava
-  detectorConstructors = {
-  d : globals()[detectorNameToClass(d)] for d in detectors}
 
+  detectorConstructors = {d : globals()[detectorNameToClass(d)] for d in detectors}
   return detectorConstructors
 
 
