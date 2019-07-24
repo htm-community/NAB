@@ -18,6 +18,9 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+#python 2 compatibility for print
+from __future__ import print_function
+
 import abc
 import os
 import pandas
@@ -26,9 +29,15 @@ import sys
 from datetime import datetime
 from nab.util import createPath, getProbationPeriod
 
+# python 2/3 compatibility for ABC
+# see https://stackoverflow.com/questions/35673474/using-abc-abcmeta-in-a-way-it-is-compatible-both-with-python-2-7-and-python-3-5 
+if sys.version_info >= (3, 4):
+  ABC = abc.ABC
+else: #python 2
+  ABC = abc.ABCMeta('ABC', (), {})
 
 
-class AnomalyDetector(object, metaclass=abc.ABCMeta):
+class AnomalyDetector(ABC):
   """
   Base class for all anomaly detectors. When inheriting from this class please
   take note of which methods MUST be overridden, as documented below.

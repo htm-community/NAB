@@ -21,6 +21,7 @@
 
 import argparse
 import os
+import subprocess
 try:
   import simplejson as json
 except ImportError:
@@ -37,9 +38,35 @@ def getDetectorClassConstructors(detectors):
   detectors and returns them in a dict. The dict maps detector name to class
   names. Assumes the detectors have been imported.
   """
-  detectorConstructors = {
-  d : globals()[detectorNameToClass(d)] for d in detectors}
+  #handle py2 detectors separately:
+  py2detectors = ",".join([d for d in detectors if (d == "numenta" or d == "numentaTM" or d == "htmjava") ])
+  if py2detectors:
+      ENV_PY2="./pyenv2/bin/python"
+      argss=[]
+      #re-parsing the arguments, as we'll provide it to a new process (python2)
+      if args.numCPUs is not None:
+          argss.append(" --numCPUs="+str(args.numCPUs))
+      argss.append("--skipConfirmation") #always skip confirmation here
+ #     if args.detectors is not None:
+ #       argss.append("--detectors="+py2detectors)
+      if args.dataDir:
+        argss.append("--dataDir="+str(args.dataDir))
+      if args.profilesFile:
+        argss.append("--profilesFile="+str(args.profilesFile))
+      if args.resultsDir:
+        argss.append("--resultsDir="+str(args.resultsDir))
+      if args.windowsFile:
+        argss.append("--windowsFile="+str(args.windowsFile))
 
+  if "htmjava" in py2detectors: # htm.java
+    subprocess.call([ENV_PY2, "./nab/detectors/htmjava/run.py"]+ argss)
+  elif "numenta" in py2detectors or "numentaTM" in py2detectors: # Numenta*
+    argss.append("--detectors="+py2detectors)
+    subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
+    
+  detectors = [d for d in detectors if d not in py2detectors] # rm numenta*, htmjava
+
+  detectorConstructors = {d : globals()[detectorNameToClass(d)] for d in detectors}
   return detectorConstructors
 
 
@@ -132,9 +159,9 @@ if __name__ == "__main__":
   parser.add_argument("-d", "--detectors",
                     nargs="*",
                     type=str,
-                    default=["null", "numenta", "random", "bayesChangePt",
-                             "windowedGaussian", "expose", "relativeEntropy",
-                             "earthgeckoSkyline"],
+                    default=["numenta", "numentaTM", "htmjava", "null", "random",
+                             "bayesChangePt", "windowedGaussian", "expose",
+                             "relativeEntropy", "earthgeckoSkyline"],
                     help="Comma separated list of detector(s) to use, e.g. "
                          "null,numenta")
 
@@ -174,12 +201,6 @@ if __name__ == "__main__":
   if "bayesChangePt" in args.detectors:
     from nab.detectors.bayes_changept.bayes_changept_detector import (
       BayesChangePtDetector)
-  if "numenta" in args.detectors:
-    from nab.detectors.numenta.numenta_detector import NumentaDetector
-  if "htmjava" in args.detectors:
-    from nab.detectors.htmjava.htmjava_detector import HtmjavaDetector
-  if "numentaTM" in args.detectors:
-    from nab.detectors.numenta.numentaTM_detector import NumentaTMDetector
   if "null" in args.detectors:
     from nab.detectors.null.null_detector import NullDetector
   if "random" in args.detectors:
@@ -196,19 +217,28 @@ if __name__ == "__main__":
   if "relativeEntropy" in args.detectors:
     from nab.detectors.relative_entropy.relative_entropy_detector import (
       RelativeEntropyDetector)
-
   # To run expose detector, you must have sklearn version 0.16.1 installed.
   # Higher versions of sklearn may not be compatible with numpy version 1.9.2
   # required to run nupic.
   if "expose" in args.detectors:
     from nab.detectors.expose.expose_detector import ExposeDetector
-
   if "contextOSE" in args.detectors:
     from nab.detectors.context_ose.context_ose_detector import (
     ContextOSEDetector )
-
   if "earthgeckoSkyline" in args.detectors:
     from nab.detectors.earthgecko_skyline.earthgecko_skyline_detector import EarthgeckoSkylineDetector
+  # Special hacks for detectors requiring Python 2:
+  # TODO the imports are failing, remove? Py2 detectors have special treatment in `getDetectorClassConstructors()` above
+  #
+  #if "numenta" in args.detectors:
+  #  ENV_PY2="./pyenv2/bin/python"
+  #  subprocess.call([ENV_PY2, "from nab.detectors.numenta.numenta_detector import NumentaDetector"])
+  #if "numentaTM" in args.detectors:
+  #  ENV_PY2="./pyenv2/bin/python"
+  #  subprocess.call([ENV_PY2, "from nab.detectors.numenta.numentaTM_detector import NumentaTMDetector"])
+  #  if "htmjava" in args.detectors:
+  #    ENV_PY2="./pyenv2/bin/python"
+  #    subprocess.call([ENV_PY2, "from nab.detectors.htmjava.htmjava_detector import HtmjavaDetector"])
 
   if args.skipConfirmation or checkInputs(args):
     main(args)
