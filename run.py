@@ -43,6 +43,7 @@ def getDetectorClassConstructors(detectors):
   if py2detectors:
       ENV_PY2="./pyenv2/bin/python"
       argss=[]
+      #re-parsing the arguments, as we'll provide it to a new process (python2)
       if args.numCPUs is not None:
           argss.append(" --numCPUs="+str(args.numCPUs))
       argss.append("--skipConfirmation") #always skip confirmation here
@@ -64,7 +65,6 @@ def getDetectorClassConstructors(detectors):
         subprocess.call([ENV_PY2, "./nab/detectors/numenta/run.py"]+ argss)
 
   # normal, py3 detectors
-  py2detectors+=",htmjava"
   detectors = [d for d in detectors if d not in py2detectors] # rm numenta*, htmjava
   detectorConstructors = {
   d : globals()[detectorNameToClass(d)] for d in detectors}
@@ -230,15 +230,17 @@ if __name__ == "__main__":
   if "earthgeckoSkyline" in args.detectors:
     from nab.detectors.earthgecko_skyline.earthgecko_skyline_detector import EarthgeckoSkylineDetector
   # Special hacks for detectors requiring Python 2:
-  if "numenta" in args.detectors:
-    ENV_PY2="./pyenv2/bin/python"
-    subprocess.call([ENV_PY2, "from nab.detectors.numenta.numenta_detector import NumentaDetector"])
-  if "numentaTM" in args.detectors:
-    ENV_PY2="./pyenv2/bin/python"
-    subprocess.call([ENV_PY2, "from nab.detectors.numenta.numentaTM_detector import NumentaTMDetector"])
-  if "htmjava" in args.detectors:
-    ENV_PY2="./pyenv2/bin/python"
-    subprocess.call([ENV_PY2, "from nab.detectors.htmjava.htmjava_detector import HtmjavaDetector"])
+  # TODO the imports are failing, remove? Py2 detectors have special treatment in `getDetectorClassConstructors()` above
+  #
+  #if "numenta" in args.detectors:
+  #  ENV_PY2="./pyenv2/bin/python"
+  #  subprocess.call([ENV_PY2, "from nab.detectors.numenta.numenta_detector import NumentaDetector"])
+  #if "numentaTM" in args.detectors:
+  #  ENV_PY2="./pyenv2/bin/python"
+  #  subprocess.call([ENV_PY2, "from nab.detectors.numenta.numentaTM_detector import NumentaTMDetector"])
+  #  if "htmjava" in args.detectors:
+  #    ENV_PY2="./pyenv2/bin/python"
+  #    subprocess.call([ENV_PY2, "from nab.detectors.htmjava.htmjava_detector import HtmjavaDetector"])
 
   if args.skipConfirmation or checkInputs(args):
     main(args)
