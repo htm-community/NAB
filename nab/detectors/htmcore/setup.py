@@ -105,7 +105,7 @@ if __name__ == "__main__":
       "HTH.core detector from HTM community repo for NAB (in Python 3)"),
     license="AGPL",
     packages=find_packages(),
-    long_description=read(os.path.join(REPO_DIR, "htm.core","README.md")),
+    long_description=read(os.path.join(REPO_DIR, "README.md")),
     install_requires=requirements,
     entry_points={
       "console_scripts": [
