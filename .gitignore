@@ -19,3 +19,4 @@ plot_*
 pyenv2/
 build/
 dist/
+htm.core/

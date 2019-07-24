@@ -159,7 +159,7 @@ if __name__ == "__main__":
   parser.add_argument("-d", "--detectors",
                     nargs="*",
                     type=str,
-                    default=["numenta", "numentaTM", "htmjava", "null", "random",
+                    default=["numenta", "numentaTM", "htmcore", "htmjava", "null", "random",
                              "bayesChangePt", "windowedGaussian", "expose",
                              "relativeEntropy", "earthgeckoSkyline"],
                     help="Comma separated list of detector(s) to use, e.g. "
@@ -227,6 +227,9 @@ if __name__ == "__main__":
     ContextOSEDetector )
   if "earthgeckoSkyline" in args.detectors:
     from nab.detectors.earthgecko_skyline.earthgecko_skyline_detector import EarthgeckoSkylineDetector
+  if "htmcore" in args.detectors:
+    print("TODO htmcore detector")
+
   # Special hacks for detectors requiring Python 2:
   # TODO the imports are failing, remove? Py2 detectors have special treatment in `getDetectorClassConstructors()` above
   #
