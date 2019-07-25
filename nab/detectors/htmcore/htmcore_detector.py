@@ -21,6 +21,7 @@
 # ----------------------------------------------------------------------
 
 import math
+import datetime
 
 # htm.core imports
 from htm.bindings.sdr import SDR, Metrics
@@ -106,7 +107,8 @@ class HtmcoreDetector(AnomalyDetector):
     self.enc_info       = None
     self.sp_info        = None
     self.tm_info        = None
-    #TODO optional: also return an error metric on predictions (RMSE, R2,...) 
+    # internal helper variables:
+    self.inputs_ = []
 
 
   def getAdditionalHeaders(self):
@@ -122,39 +124,8 @@ class HtmcoreDetector(AnomalyDetector):
     @return tuple (anomalyScore, <any other fields specified in `getAdditionalHeaders()`>, ...)
     """
     # Send it to Numenta detector and get back the results
-    result = self.modelRun(inputData["timestamp"], inputData["value"]) 
+    return self.modelRun(inputData["timestamp"], inputData["value"]) 
 
-    # Get the value
-    value = inputData["value"]
-
-    # Retrieve the anomaly score and write it to a file
-    rawScore = result
-
-    ## handle anomalies: raw -> ?spatial or ?likelihood -> finalScore
-    spatialAnomaly = 0.0 #TODO optional: make this computed in SP (and later improve)
-    if self.useSpatialAnomaly:
-      # Update min/max values and check if there is a spatial anomaly
-      if self.minVal != self.maxVal:
-        tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
-        maxExpected = self.maxVal + tolerance
-        minExpected = self.minVal - tolerance
-        if value > maxExpected or value < minExpected:
-          spatialAnomaly = 1.0
-      if self.maxVal is None or value > self.maxVal:
-        self.maxVal = value
-      if self.minVal is None or value < self.minVal:
-        self.minVal = value
-
-    if self.useLikelihood:
-      # Compute log(anomaly likelihood)
-      anomalyScore = self.anomalyLikelihood.anomalyProbability(inputData["value"], rawScore, inputData["timestamp"])
-      logScore = self.anomalyLikelihood.computeLogLikelihood(anomalyScore)
-      temporalAnomaly = logScore #TODO optional: TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood 
-    else:
-      temporalAnomaly = rawScore
-
-    anomalyScore = max(spatialAnomaly, temporalAnomaly)
-    return (anomalyScore, rawScore)
 
 
   def initialize(self):
@@ -196,7 +167,7 @@ class HtmcoreDetector(AnomalyDetector):
       boostStrength              = spParams["boostStrength"],
       wrapAround                 = True
     )
-    self.sp_info = Metrics( sp.getColumnDimensions(), 999999999 )
+    self.sp_info = Metrics( self.sp.getColumnDimensions(), 999999999 )
 
     # TemporalMemory
     tmParams = parameters["tm"]
@@ -214,7 +185,7 @@ class HtmcoreDetector(AnomalyDetector):
       maxSegmentsPerCell        = tmParams["maxSegmentsPerCell"],
       maxSynapsesPerSegment     = tmParams["maxSynapsesPerSegment"]
     )
-    self.tm_info = Metrics( [tm.numberOfCells()], 999999999 )
+    self.tm_info = Metrics( [self.tm.numberOfCells()], 999999999 )
 
     # setup likelihood, these settings are used in NAB
     if self.useLikelihood:
@@ -231,7 +202,7 @@ class HtmcoreDetector(AnomalyDetector):
 
 
   def _setupEncoderParams(self, encoderParams):
-    # The encoder must expect the NAB-specific datafile headers
+    # The encoder must expect the NAB-specific datafile headers #FIXME can be removed?
     encoderParams["timestamp_dayOfWeek"] = encoderParams.pop("c0_dayOfWeek")
     encoderParams["timestamp_timeOfDay"] = encoderParams.pop("c0_timeOfDay")
     encoderParams["timestamp_timeOfDay"]["fieldname"] = "timestamp"
@@ -252,5 +223,60 @@ class HtmcoreDetector(AnomalyDetector):
 
          @return rawAnomalyScore computed for the `val` in this step
       """
-      #FIXME do enc->SP->TM->AN here
-      return 0.0
+      ## run data through our model pipeline: enc -> SP -> TM -> Anomaly
+      self.inputs_.append( val )
+      
+      # 1. Encoding
+      # Call the encoders to create bit representations for each value.  These are SDR objects.
+      dateBits        = self.encTimestamp.encode(ts)
+      valueBits       = self.encValue.encode(float(val))
+      # Concatenate all these encodings into one large encoding for Spatial Pooling.
+      encoding = SDR( self.encTimestamp.size + self.encValue.size ).concatenate([valueBits, dateBits])
+      self.enc_info.addData( encoding )
+
+      # 2. Spatial Pooler
+      # Create an SDR to represent active columns, This will be populated by the
+      # compute method below. It must have the same dimensions as the Spatial Pooler.
+      activeColumns = SDR( self.sp.getColumnDimensions() )
+      # Execute Spatial Pooling algorithm over input space.
+      self.sp.compute(encoding, True, activeColumns)
+      self.sp_info.addData( activeColumns )
+
+      # 3. Temporal Memory
+      # Execute Temporal Memory algorithm over active mini-columns.
+      self.tm.compute(activeColumns, learn=True)
+      self.tm_info.addData( self.tm.getActiveCells().flatten() ) #FIXME for anomaly, should we use active cells, or winner cells? And also convert to columns!
+
+      # 4.1 (optional) Predictor #TODO optional
+      #TODO optional: also return an error metric on predictions (RMSE, R2,...)
+
+      # 4.2 Anomaly 
+      # handle spatial, contextual (raw, likelihood) anomalies
+      # -Spatial
+      spatialAnomaly = 0.0 #TODO optional: make this computed in SP (and later improve)
+      if self.useSpatialAnomaly:
+        # Update min/max values and check if there is a spatial anomaly
+        if self.minVal != self.maxVal:
+          tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
+          maxExpected = self.maxVal + tolerance
+          minExpected = self.minVal - tolerance
+          if val > maxExpected or val < minExpected:
+            spatialAnomaly = 1.0
+        if self.maxVal is None or val > self.maxVal:
+          self.maxVal = val
+        if self.minVal is None or val < self.minVal:
+          self.minVal = val
+
+      # -temporal (raw)
+      raw = self.tm.anomaly
+      temporalAnomaly = raw
+
+      if self.useLikelihood:
+        # Compute log(anomaly likelihood)
+        like = self.anomalyLikelihood.anomalyProbability(val, raw, ts)
+        logScore = self.anomalyLikelihood.computeLogLikelihood(like)
+        temporalAnomaly = logScore #TODO optional: TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood
+
+      anomalyScore = max(spatialAnomaly, temporalAnomaly) # this is the "main" anomaly, compared in NAB
+
+      return (anomalyScore, raw)
