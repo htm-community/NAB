@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
+# Copyright (C) 2019, @breznak
+#
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
@@ -45,16 +47,14 @@ class HtmcoreDetector(AnomalyDetector):
 
     super(HtmcoreDetector, self).__init__(*args, **kwargs)
 
-    self.anomalyLikelihood = None
-    # Keep track of value range for spatial anomaly detection
-    self.minVal = None
-    self.maxVal = None
+    ## API for controlling settings of htm.core HTM detector:
 
     # Set this to False if you want to get results based on raw scores
     # without using AnomalyLikelihood. This will give worse results, but
     # useful for checking the efficacy of AnomalyLikelihood. You will need
     # to re-optimize the thresholds when running with this setting.
     self.useLikelihood = True
+    self.useSpatialAnomaly = True
 
 
   def getAdditionalHeaders(self):
@@ -65,43 +65,45 @@ class HtmcoreDetector(AnomalyDetector):
   def handleRecord(self, inputData):
     """Returns a tuple (anomalyScore, rawScore).
 
-    Internally to NuPIC "anomalyScore" corresponds to "likelihood_score"
-    and "rawScore" corresponds to "anomaly_score". Sorry about that.
+    @param inputData is a dict {"timestamp" : Timestamp(), "value" : float}
+
+    @return tuple (anomalyScore, <any other fields specified in `getAdditionalHeaders()`>, ...)
     """
     # Send it to Numenta detector and get back the results
-    result = [] #FIXME self.model.run(inputData)
+    result = self.modelRun(inputData["timestamp"], inputData["value"]) 
 
     # Get the value
     value = inputData["value"]
 
     # Retrieve the anomaly score and write it to a file
-    rawScore = 0.5 #FIXME result.inferences["anomalyScore"]
+    rawScore = result
 
-    # Update min/max values and check if there is a spatial anomaly
-    spatialAnomaly = False #TODO make this computed in SP (and later improve)
-    if self.minVal != self.maxVal:
-      tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
-      maxExpected = self.maxVal + tolerance
-      minExpected = self.minVal - tolerance
-      if value > maxExpected or value < minExpected:
-        spatialAnomaly = True
-    if self.maxVal is None or value > self.maxVal:
-      self.maxVal = value
-    if self.minVal is None or value < self.minVal:
-      self.minVal = value
+    ## handle anomalies: raw -> ?spatial or ?likelihood -> finalScore
+    spatialAnomaly = 0.0 #TODO make this computed in SP (and later improve)
+    if self.useSpatialAnomaly:
+      # Update min/max values and check if there is a spatial anomaly
+      if self.minVal != self.maxVal:
+        tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
+        maxExpected = self.maxVal + tolerance
+        minExpected = self.minVal - tolerance
+        if value > maxExpected or value < minExpected:
+          spatialAnomaly = 1.0
+      if self.maxVal is None or value > self.maxVal:
+        self.maxVal = value
+      if self.minVal is None or value < self.minVal:
+        self.minVal = value
 
     if self.useLikelihood:
       # Compute log(anomaly likelihood)
       anomalyScore = self.anomalyLikelihood.anomalyProbability(inputData["value"], rawScore, inputData["timestamp"])
       logScore = self.anomalyLikelihood.computeLogLikelihood(anomalyScore)
-      finalScore = logScore #TODO returls logScore and not probability? Fix that in our Likelihood.cpp; #TODO TM to provide anomaly {none, raw, likelihood} 
+      temporalAnomaly = logScore #TODO TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood 
     else:
-      finalScore = rawScore
+      temporalAnomaly = rawScore
 
-    if spatialAnomaly:
-      finalScore = 1.0
+    anomalyScore = max(spatialAnomaly, temporalAnomaly)
 
-    return (finalScore, rawScore)
+    return (anomalyScore, rawScore)
 
 
   def initialize(self):
@@ -111,14 +113,21 @@ class HtmcoreDetector(AnomalyDetector):
     maxVal=self.inputMax+rangePadding
     minResolution=0.001 #TODO there params should form default_params for encoder etc
 
+    # setup anomaly likelihood
     if self.useLikelihood:
-      # Initialize the anomaly likelihood object
       numentaLearningPeriod = int(math.floor(self.probationaryPeriod / 2.0))
       self.anomalyLikelihood = AnomalyLikelihood( #TODO make these default for py anomaly_likelihood? as NAB is likely tuned for best Likelihood!
         learningPeriod=numentaLearningPeriod,
         estimationSamples=self.probationaryPeriod-numentaLearningPeriod,
         reestimationPeriod=100
       )
+
+    # setup spatial anomaly
+    if self.useSpatialAnomaly:
+      # Keep track of value range for spatial anomaly detection
+      self.minVal = None
+      self.maxVal = None
+
 
 
   def _setupEncoderParams(self, encoderParams):
@@ -133,3 +142,15 @@ class HtmcoreDetector(AnomalyDetector):
     encoderParams["value"]["name"] = "value"
 
     self.sensorParams = encoderParams["value"]
+
+  def modelRun(self, ts, val):
+      """
+         Run a single pass through HTM model
+
+         @params ts - Timestamp
+         @params val - float input value
+
+         @return rawAnomalyScore computed for the `val` in this step
+      """
+      #FIXME do enc->SP->TM->AN here
+      return 0.0
