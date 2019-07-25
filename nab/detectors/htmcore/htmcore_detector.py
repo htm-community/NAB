@@ -349,7 +349,7 @@ class HtmcoreDetector(AnomalyDetector):
       # 3. Temporal Memory
       # Execute Temporal Memory algorithm over active mini-columns.
       self.tm.compute(activeColumns, learn=True)
-      self.tm_info.addData( self.tm.getActiveCells().flatten() ) #FIXME for anomaly, should we use active cells, or winner cells? And also convert to columns!
+      self.tm_info.addData( self.tm.getActiveCells().flatten() )
 
       # 4.1 (optional) Predictor #TODO optional
       #TODO optional: also return an error metric on predictions (RMSE, R2,...)
