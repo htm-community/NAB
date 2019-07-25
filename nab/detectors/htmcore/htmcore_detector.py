@@ -115,31 +115,34 @@ numenta_params = {
     u'inferenceType': u'TemporalAnomaly'}
 }
 
+# these params can be used with our model and are equivalent (where possible) to that of numenta_detector
 # TODO optional: optimize these params, either manually and/or swarming. But first keep comparable to numenta_detector
-default_parameters = {
+parameters_numenta_comparable = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
   'enc': {
     "value" : #RDSE for value
-      {'resolution': 0.001, 'size': 700, 'sparsity': 0.02},
-    "time":   #DateTime for timestamps
-      {'timeOfDay': (30, 1), 'weekend': 21}},
+      {'resolution': 0.001, 'size': 4000, 'sparsity': 0.2},
+    "time": {  #DateTime for timestamps
+        'timeOfDay': (21, 9.49), 
+        'weekend': 0 #21 TODO try impact of weekend
+        }},
   'predictor': {'sdrc_alpha': 0.1},
   'sp': {
-    'boostStrength': 3.0,
-    'columnCount': 1638,
-    'localAreaDensity': 0.04395604395604396,
-    'potentialPct': 0.85,
-    'synPermActiveInc': 0.04,
-    'synPermConnected': 0.14,
-    'synPermInactiveDec': 0.006},
+    'boostStrength': 0.0,
+    'columnCount': 2048,
+    'localAreaDensity': 0.04395604395604396, # numenta's numActiveColumnsPerInhArea=40 deprecated, compute corresponding value?
+    'potentialPct': 0.8,
+    'synPermActiveInc': 0.005,
+    'synPermConnected': 0.2,
+    'synPermInactiveDec': 0.0005},
   'tm': {
-    'activationThreshold': 17,
-    'cellsPerColumn': 13,
+    'activationThreshold': 13,
+    'cellsPerColumn': 32,
     'initialPerm': 0.21,
     'maxSegmentsPerCell': 128,
-    'maxSynapsesPerSegment': 64,
+    'maxSynapsesPerSegment': 32,
     'minThreshold': 10,
-    'newSynapseCount': 32,
+    'newSynapseCount': 20,
     'permanenceDec': 0.1,
     'permanenceInc': 0.1},
   'anomaly': {
@@ -149,6 +152,43 @@ default_parameters = {
       'probationaryPct': 0.1,
       'reestimationPeriod': 100}}
 }
+
+# default parameters used with our model (originaly taken from `hotgym.py`)
+# TODO optional: optimize these params, either manually and/or swarming.
+default_paramenters = {
+# there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
+  'enc': {
+    "value" : #RDSE for value
+      {'resolution': 0.001, 'size': 700, 'sparsity': 0.02},
+    "time":   #DateTime for timestamps
+      {'timeOfDay': (30, 1), 'weekend': 21}},
+  'predictor': {'sdrc_alpha': 0.1},
+  'sp': {
+      'boostStrength': 3.0,
+      'columnCount': 1638,
+      'localAreaDensity': 0.04395604395604396,
+      'potentialPct': 0.85,
+      'synPermActiveInc': 0.04,
+      'synPermConnected': 0.14,
+      'synPermInactiveDec': 0.006},
+  'tm': {
+      'activationThreshold': 17,
+      'cellsPerColumn': 13,
+      'initialPerm': 0.21,
+      'maxSegmentsPerCell': 128,
+      'maxSynapsesPerSegment': 64,
+      'minThreshold': 10,
+      'newSynapseCount': 32,
+      'permanenceDec': 0.1,
+      'permanenceInc': 0.1},
+  'anomaly': {
+      'likelihood': {
+          #'learningPeriod': int(math.floor(self.probationaryPeriod / 2.0)),
+          #'probationaryPeriod': self.probationaryPeriod-default_parameters["anomaly"]["likelihood"]["learningPeriod"],
+          'probationaryPct': 0.1,
+          'reestimationPeriod': 100}}
+}
+
 
 class HtmcoreDetector(AnomalyDetector):
   """
@@ -167,7 +207,7 @@ class HtmcoreDetector(AnomalyDetector):
     # to re-optimize the thresholds when running with this setting.
     self.useLikelihood      = True
     self.useSpatialAnomaly  = True
-    self.verbose            = False
+    self.verbose            = True
 
     ## internal members 
     # (listed here for easier understanding)
@@ -183,6 +223,7 @@ class HtmcoreDetector(AnomalyDetector):
     self.tm_info        = None
     # internal helper variables:
     self.inputs_ = []
+    self.iteration_ = 0
 
 
   def getAdditionalHeaders(self):
@@ -203,7 +244,9 @@ class HtmcoreDetector(AnomalyDetector):
 
 
   def initialize(self):
-    parameters = default_parameters
+    # toggle parameters here
+    #parameters = default_parameters
+    parameters = parameters_numenta_comparable
 
     # setup spatial anomaly
     if self.useSpatialAnomaly:
@@ -285,6 +328,7 @@ class HtmcoreDetector(AnomalyDetector):
       """
       ## run data through our model pipeline: enc -> SP -> TM -> Anomaly
       self.inputs_.append( val )
+      self.iteration_ += 1
       
       # 1. Encoding
       # Call the encoders to create bit representations for each value.  These are SDR objects.
@@ -338,5 +382,11 @@ class HtmcoreDetector(AnomalyDetector):
         temporalAnomaly = logScore #TODO optional: TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood
 
       anomalyScore = max(spatialAnomaly, temporalAnomaly) # this is the "main" anomaly, compared in NAB
+
+      # 5. print stats
+      if self.verbose and self.iteration_ % 1000 == 0:
+          print(enc_info)
+          print(sp_info)
+          print(tm_info)
 
       return (anomalyScore, raw)
