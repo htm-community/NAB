@@ -41,6 +41,80 @@ from nab.detectors.base import AnomalyDetector
 SPATIAL_TOLERANCE = 0.05
 
 ## parameters to initialize our HTM model (encoder, SP, TM, AnomalyLikelihood)
+# These are all the original params from `numenta` detector:
+# These values are not directly used, only for information here
+numenta_params = {
+  u'aggregationInfo': {u'seconds': 0, u'fields': [], u'months': 0, u'days': 0, u'years': 0, u'hours': 0, u'microseconds': 0, u'weeks': 0, u'minutes': 0, u'milliseconds': 0}, 
+  u'model': u'HTMPrediction', 
+  u'version': 1, 
+  u'predictAheadTime': None, 
+  u'modelParams': {
+    u'sensorParams': {
+      u'sensorAutoReset': None, 
+      u'encoders': {
+       'value': {
+          u'name': 'value', 
+          'resolution': 0.95846153846153836, 
+          u'seed': 42, 
+          u'fieldname': 'value', 
+          u'type': u'RandomDistributedScalarEncoder'}, 
+       'timestamp_dayOfWeek': None, 
+       'timestamp_timeOfDay': {
+          u'fieldname': 'timestamp', 
+          u'timeOfDay': [21, 9.49], 
+          u'type': u'DateEncoder', 
+          u'name': 'timestamp'}, 
+       'timestamp_weekend': None}, 
+      u'verbosity': 0}, 
+    u'anomalyParams': {
+        u'anomalyCacheRecords': None, 
+        u'autoDetectThreshold': None, 
+        u'autoDetectWaitRecords': 5030}, 
+    u'spParams': {
+        u'columnCount': 2048, 
+        u'synPermInactiveDec': 0.0005, 
+        u'spatialImp': u'cpp', 
+        u'inputWidth': 0, 
+        u'spVerbosity': 0, 
+        u'synPermConnected': 0.2, 
+        u'synPermActiveInc': 0.003, 
+        u'potentialPct': 0.8, 
+        u'numActiveColumnsPerInhArea': 40, 
+        u'boostStrength': 0.0, 
+        u'globalInhibition': 1, 
+        u'seed': 1956}, 
+    u'trainSPNetOnlyIfRequested': False, 
+    u'clParams': {
+        u'alpha': 0.035828933612158, 
+        u'verbosity': 0, 
+        u'steps': u'1', 
+        u'regionName': 
+        u'SDRClassifierRegion'}, 
+    u'tmParams': {
+        u'columnCount': 2048, 
+        u'activationThreshold': 13, 
+        u'pamLength': 3, 
+        u'cellsPerColumn': 32, 
+        u'permanenceDec': 0.1, 
+        u'minThreshold': 10, 
+        u'inputWidth': 2048, 
+        u'maxSynapsesPerSegment': 32, 
+        u'outputType': u'normal', 
+        u'initialPerm': 0.21, 
+        u'globalDecay': 0.0, 
+        u'maxAge':0, 
+        u'newSynapseCount': 20, 
+        u'maxSegmentsPerCell': 128, 
+        u'permanenceInc': 0.1, 
+        u'temporalImp': u'cpp', 
+        u'seed': 1960, 
+        u'verbosity': 0}, 
+    u'tmEnable': True, 
+    u'clEnable': False, 
+    u'spEnable': True, 
+    u'inferenceType': u'TemporalAnomaly'}
+}
+
 # TODO optional: optimize these params, either manually and/or swarming. But first keep comparable to numenta_detector
 default_parameters = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
