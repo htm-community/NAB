@@ -23,11 +23,14 @@
 import math
 
 # htm.core imports
-from htm.bindings.algorithms import SpatialPooler   as SP
-from htm.bindings.algorithms import TemporalMemory  as TM
+from htm.bindings.sdr import SDR, Metrics
+from htm.encoders.rdse import RDSE, RDSE_Parameters
+from htm.encoders.date import DateEncoder
+from htm.bindings.algorithms import SpatialPooler
+from htm.bindings.algorithms import TemporalMemory
+from htm.algorithms.anomaly_likelihood import AnomalyLikelihood
 from htm.bindings.algorithms import Predictor
 
-from htm.algorithms.anomaly_likelihood import AnomalyLikelihood
 from nab.detectors.base import AnomalyDetector
 
 # Fraction outside of the range of values seen so far that will be considered
@@ -36,7 +39,41 @@ from nab.detectors.base import AnomalyDetector
 # has been seen so far.
 SPATIAL_TOLERANCE = 0.05
 
-
+## parameters to initialize our HTM model (encoder, SP, TM, AnomalyLikelihood)
+# TODO optional: optimize these params, either manually and/or swarming. But first keep comparable to numenta_detector
+default_parameters = {
+  # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
+  'enc': {
+    "value" : #RDSE for value
+      {'resolution': 0.001, 'size': 700, 'sparsity': 0.02},
+    "time":   #DateTime for timestamps
+      {'timeOfDay': (30, 1), 'weekend': 21}},
+  'predictor': {'sdrc_alpha': 0.1},
+  'sp': {
+    'boostStrength': 3.0,
+    'columnCount': 1638,
+    'localAreaDensity': 0.04395604395604396,
+    'potentialPct': 0.85,
+    'synPermActiveInc': 0.04,
+    'synPermConnected': 0.14,
+    'synPermInactiveDec': 0.006},
+  'tm': {
+    'activationThreshold': 17,
+    'cellsPerColumn': 13,
+    'initialPerm': 0.21,
+    'maxSegmentsPerCell': 128,
+    'maxSynapsesPerSegment': 64,
+    'minThreshold': 10,
+    'newSynapseCount': 32,
+    'permanenceDec': 0.1,
+    'permanenceInc': 0.1},
+  'anomaly': {
+    'likelihood': {
+      #'learningPeriod': int(math.floor(self.probationaryPeriod / 2.0)),
+      #'probationaryPeriod': self.probationaryPeriod-default_parameters["anomaly"]["likelihood"]["learningPeriod"],
+      'probationaryPct': 0.1,
+      'reestimationPeriod': 100}}
+}
 
 class HtmcoreDetector(AnomalyDetector):
   """
@@ -53,13 +90,28 @@ class HtmcoreDetector(AnomalyDetector):
     # without using AnomalyLikelihood. This will give worse results, but
     # useful for checking the efficacy of AnomalyLikelihood. You will need
     # to re-optimize the thresholds when running with this setting.
-    self.useLikelihood = True
-    self.useSpatialAnomaly = True
+    self.useLikelihood      = True
+    self.useSpatialAnomaly  = True
+    self.verbose            = False
+
+    ## internal members 
+    # (listed here for easier understanding)
+    # initialized in `initialize()`
+    self.encTimestamp   = None
+    self.encValue       = None
+    self.sp             = None
+    self.tm             = None
+    self.anLike         = None
+    # optional debug info
+    self.enc_info       = None
+    self.sp_info        = None
+    self.tm_info        = None
+    #TODO optional: also return an error metric on predictions (RMSE, R2,...) 
 
 
   def getAdditionalHeaders(self):
     """Returns a list of strings."""
-    return ["raw_score"] #TODO add "prediction"
+    return ["raw_score"] #TODO optional: add "prediction"
 
 
   def handleRecord(self, inputData):
@@ -79,7 +131,7 @@ class HtmcoreDetector(AnomalyDetector):
     rawScore = result
 
     ## handle anomalies: raw -> ?spatial or ?likelihood -> finalScore
-    spatialAnomaly = 0.0 #TODO make this computed in SP (and later improve)
+    spatialAnomaly = 0.0 #TODO optional: make this computed in SP (and later improve)
     if self.useSpatialAnomaly:
       # Update min/max values and check if there is a spatial anomaly
       if self.minVal != self.maxVal:
@@ -97,36 +149,84 @@ class HtmcoreDetector(AnomalyDetector):
       # Compute log(anomaly likelihood)
       anomalyScore = self.anomalyLikelihood.anomalyProbability(inputData["value"], rawScore, inputData["timestamp"])
       logScore = self.anomalyLikelihood.computeLogLikelihood(anomalyScore)
-      temporalAnomaly = logScore #TODO TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood 
+      temporalAnomaly = logScore #TODO optional: TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood 
     else:
       temporalAnomaly = rawScore
 
     anomalyScore = max(spatialAnomaly, temporalAnomaly)
-
     return (anomalyScore, rawScore)
 
 
   def initialize(self):
-    # Get config params, setting the RDSE resolution
-    rangePadding = abs(self.inputMax - self.inputMin) * 0.2
-    minVal=self.inputMin-rangePadding
-    maxVal=self.inputMax+rangePadding
-    minResolution=0.001 #TODO there params should form default_params for encoder etc
-
-    # setup anomaly likelihood
-    if self.useLikelihood:
-      numentaLearningPeriod = int(math.floor(self.probationaryPeriod / 2.0))
-      self.anomalyLikelihood = AnomalyLikelihood( #TODO make these default for py anomaly_likelihood? as NAB is likely tuned for best Likelihood!
-        learningPeriod=numentaLearningPeriod,
-        estimationSamples=self.probationaryPeriod-numentaLearningPeriod,
-        reestimationPeriod=100
-      )
+    parameters = default_parameters
 
     # setup spatial anomaly
     if self.useSpatialAnomaly:
       # Keep track of value range for spatial anomaly detection
       self.minVal = None
       self.maxVal = None
+
+    ## setup Enc, SP, TM, Likelihood
+    # Make the Encoders.  These will convert input data into binary representations.
+    self.encTimestamp = DateEncoder(timeOfDay= parameters["enc"]["time"]["timeOfDay"],
+                                    weekend  = parameters["enc"]["time"]["weekend"])
+
+    scalarEncoderParams            = RDSE_Parameters()
+    scalarEncoderParams.size       = parameters["enc"]["value"]["size"]
+    scalarEncoderParams.sparsity   = parameters["enc"]["value"]["sparsity"]
+    scalarEncoderParams.resolution = parameters["enc"]["value"]["resolution"]
+
+    self.encValue = RDSE( scalarEncoderParams )
+    encodingWidth = (self.encTimestamp.size + self.encValue.size)
+    self.enc_info = Metrics( [encodingWidth], 999999999 )
+
+    # Make the HTM.  SpatialPooler & TemporalMemory & associated tools.
+    # SpatialPooler
+    spParams = parameters["sp"]
+    self.sp = SpatialPooler(
+      inputDimensions            = (encodingWidth,),
+      columnDimensions           = (spParams["columnCount"],),
+      potentialPct               = spParams["potentialPct"],
+      potentialRadius            = encodingWidth,
+      globalInhibition           = True,
+      localAreaDensity           = spParams["localAreaDensity"],
+      synPermInactiveDec         = spParams["synPermInactiveDec"],
+      synPermActiveInc           = spParams["synPermActiveInc"],
+      synPermConnected           = spParams["synPermConnected"],
+      boostStrength              = spParams["boostStrength"],
+      wrapAround                 = True
+    )
+    self.sp_info = Metrics( sp.getColumnDimensions(), 999999999 )
+
+    # TemporalMemory
+    tmParams = parameters["tm"]
+    self.tm = TemporalMemory(
+      columnDimensions          = (spParams["columnCount"],),
+      cellsPerColumn            = tmParams["cellsPerColumn"],
+      activationThreshold       = tmParams["activationThreshold"],
+      initialPermanence         = tmParams["initialPerm"],
+      connectedPermanence       = spParams["synPermConnected"],
+      minThreshold              = tmParams["minThreshold"],
+      maxNewSynapseCount        = tmParams["newSynapseCount"],
+      permanenceIncrement       = tmParams["permanenceInc"],
+      permanenceDecrement       = tmParams["permanenceDec"],
+      predictedSegmentDecrement = 0.0,
+      maxSegmentsPerCell        = tmParams["maxSegmentsPerCell"],
+      maxSynapsesPerSegment     = tmParams["maxSynapsesPerSegment"]
+    )
+    self.tm_info = Metrics( [tm.numberOfCells()], 999999999 )
+
+    # setup likelihood, these settings are used in NAB
+    if self.useLikelihood:
+      anParams = parameters["anomaly"]["likelihood"]
+      learningPeriod     = int(math.floor(self.probationaryPeriod / 2.0))
+      self.anomalyLikelihood = AnomalyLikelihood(
+                                 learningPeriod= learningPeriod,
+                                 estimationSamples= self.probationaryPeriod - learningPeriod,
+                                 reestimationPeriod= anParams["reestimationPeriod"])
+    # Predictor
+    self.predictor = Predictor( steps=[1, 5], alpha=parameters["predictor"]['sdrc_alpha'] )
+    predictor_resolution = 1
 
 
 
