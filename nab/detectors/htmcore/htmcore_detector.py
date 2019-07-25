@@ -200,20 +200,6 @@ class HtmcoreDetector(AnomalyDetector):
     predictor_resolution = 1
 
 
-
-  def _setupEncoderParams(self, encoderParams):
-    # The encoder must expect the NAB-specific datafile headers #FIXME can be removed?
-    encoderParams["timestamp_dayOfWeek"] = encoderParams.pop("c0_dayOfWeek")
-    encoderParams["timestamp_timeOfDay"] = encoderParams.pop("c0_timeOfDay")
-    encoderParams["timestamp_timeOfDay"]["fieldname"] = "timestamp"
-    encoderParams["timestamp_timeOfDay"]["name"] = "timestamp"
-    encoderParams["timestamp_weekend"] = encoderParams.pop("c0_weekend")
-    encoderParams["value"] = encoderParams.pop("c1")
-    encoderParams["value"]["fieldname"] = "value"
-    encoderParams["value"]["name"] = "value"
-
-    self.sensorParams = encoderParams["value"]
-
   def modelRun(self, ts, val):
       """
          Run a single pass through HTM model
