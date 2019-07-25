@@ -49,22 +49,23 @@ Statement: We'll try to upstream any changes, new detectors and datasets to upst
 
 The NAB scores are normalized such that the maximum possible is 100.0 (i.e. the perfect detector), and a baseline of 0.0 is determined by the "null" detector (which makes no detections).
 
-| Detector      | Standard Profile | Reward Low FP | Reward Low FN |
-|---------------|------------------|---------------|---------------|
-| Perfect       | 100.0            | 100.0         | 100.0         |
-| [Numenta HTM](https://github.com/numenta/nupic)* | 70.5-69.7     | 62.6-61.7     | 75.2-74.2     |
-| [CAD OSE](https://github.com/smirmik/CAD)&dagger; | 69.9          | 67.0          | 73.2          |
-| [earthgecko Skyline](https://github.com/earthgecko/skyline) | 58.2 | 46.2 | 63.9 |
-| [KNN CAD](https://github.com/numenta/NAB/tree/master/nab/detectors/knncad)&dagger; | 58.0     | 43.4  | 64.8     |
-| [Relative Entropy](http://www.hpl.hp.com/techreports/2011/HPL-2011-8.pdf) | 54.6 | 47.6 | 58.8 |
-| [Random Cut Forest](http://proceedings.mlr.press/v48/guha16.pdf) **** | 51.7 | 38.4 | 59.7 |
-| [Twitter ADVec v1.0.0](https://github.com/twitter/AnomalyDetection)| 47.1             | 33.6          | 53.5          |
-| [Windowed Gaussian](https://github.com/numenta/NAB/blob/master/nab/detectors/gaussian/windowedGaussian_detector.py) | 39.6             | 20.9         | 47.4          |
-| [Etsy Skyline](https://github.com/etsy/skyline) | 35.7             | 27.1          | 44.5          |
-| Bayesian Changepoint**          | 17.7              | 3.2           | 32.2           |
-|  [EXPoSE](https://arxiv.org/abs/1601.06602v3)   | 16.4     | 3.2  | 26.9     |
-| Random***       | 11.0             | 1.2          | 19.5          |
-| Null          | 0.0              | 0.0           | 0.0           |
+| Detector      | Standard Profile | Reward Low FP | Reward Low FN | Detector name | Time (s)   |
+|---------------|------------------|---------------|---------------|---------------|------------|
+| Perfect       | 100.0            | 100.0         | 100.0         |               |            |
+| [Numenta HTM](https://github.com/numenta/nupic)* | 70.5-69.7     | 62.6-61.7     | 75.2-74.2     | `numenta` |  |
+| [CAD OSE](https://github.com/smirmik/CAD)&dagger; | 69.9          | 67.0          | 73.2          | | |
+| [earthgecko Skyline](https://github.com/earthgecko/skyline) | 58.2 | 46.2 | 63.9 | | |
+| [KNN CAD](https://github.com/htm-community/NAB/tree/master/nab/detectors/knncad)&dagger; | 58.0     | 43.4  | 64.8     | | |
+| [Relative Entropy](http://www.hpl.hp.com/techreports/2011/HPL-2011-8.pdf) | 54.6 | 47.6 | 58.8 | | |
+| [Random Cut Forest](http://proceedings.mlr.press/v48/guha16.pdf) **** | 51.7 | 38.4 | 59.7 | | |
+| [htm.core](https://github.com/htm-community/htm.core/)	| 50.83 | 49.95 | 52.64 | `htmcore` |  |
+| [Twitter ADVec v1.0.0](https://github.com/twitter/AnomalyDetection)| 47.1             | 33.6          | 53.5          | | |
+| [Windowed Gaussian](https://github.com/htm-community/NAB/blob/master/nab/detectors/gaussian/windowedGaussian_detector.py) | 39.6             | 20.9         | 47.4          | | |
+| [Etsy Skyline](https://github.com/etsy/skyline) | 35.7             | 27.1          | 44.5          | | |
+| Bayesian Changepoint**          | 17.7              | 3.2           | 32.2           | | |
+|  [EXPoSE](https://arxiv.org/abs/1601.06602v3)   | 16.4     | 3.2  | 26.9     | | |
+| Random***       | 11.0             | 1.2          | 19.5          | | |
+| Null          | 0.0              | 0.0           | 0.0           | | |
 
 *As of NAB v1.0*
 
@@ -98,8 +99,8 @@ For comparison, here are the NAB V1.0 scores for some additional flavors of HTM.
 |---------------|---------|------------------|---------------|
 | Numenta HTMusing NuPIC v0.5.6*   | 70.1             | 63.1       | 74.3          |
 | [nab-comportex](https://github.com/floybix/nab-comportex)&dagger; | 64.6             | 58.8       | 69.6          |
-| [NumentaTM HTM](https://github.com/numenta/NAB/blob/master/nab/detectors/numenta/numentaTM_detector.py)* | 64.6             | 56.7       | 69.2          |
-| [HTM Java](https://github.com/numenta/NAB/blob/master/nab/detectors/htmjava) | 56.8 | 50.7 | 61.4 |
+| [NumentaTM HTM](https://github.com/htm-community/NAB/blob/master/nab/detectors/numenta/numentaTM_detector.py)* | 64.6             | 56.7       | 69.2          |
+| [HTM Java](https://github.com/htm-community/NAB/blob/master/nab/detectors/htmjava) | 56.8 | 50.7 | 61.4 |
 | Numenta HTM*, no likelihood | 53.62 | 34.15    | 61.89         |
 
 \* From NuPIC version 0.5.6 ([available on PyPI](https://pypi.python.org/pypi/nupic/0.5.6)).
