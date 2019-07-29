@@ -40,89 +40,15 @@ from nab.detectors.base import AnomalyDetector
 # has been seen so far.
 SPATIAL_TOLERANCE = 0.05
 
-## parameters to initialize our HTM model (encoder, SP, TM, AnomalyLikelihood)
-# These are all the original params from `numenta` detector:
-# These values are not directly used, only for information here
-numenta_params = {
-  u'aggregationInfo': {u'seconds': 0, u'fields': [], u'months': 0, u'days': 0, u'years': 0, u'hours': 0, u'microseconds': 0, u'weeks': 0, u'minutes': 0, u'milliseconds': 0}, 
-  u'model': u'HTMPrediction', 
-  u'version': 1, 
-  u'predictAheadTime': None, 
-  u'modelParams': {
-    u'sensorParams': {
-      u'sensorAutoReset': None, 
-      u'encoders': {
-       'value': {
-          u'name': 'value', 
-          'resolution': 0.95846153846153836, 
-          u'seed': 42, 
-          u'fieldname': 'value', 
-          u'type': u'RandomDistributedScalarEncoder'}, 
-       'timestamp_dayOfWeek': None, 
-       'timestamp_timeOfDay': {
-          u'fieldname': 'timestamp', 
-          u'timeOfDay': [21, 9.49], 
-          u'type': u'DateEncoder', 
-          u'name': 'timestamp'}, 
-       'timestamp_weekend': None}, 
-      u'verbosity': 0}, 
-    u'anomalyParams': {
-        u'anomalyCacheRecords': None, 
-        u'autoDetectThreshold': None, 
-        u'autoDetectWaitRecords': 5030}, 
-    u'spParams': {
-        u'columnCount': 2048, 
-        u'synPermInactiveDec': 0.0005, 
-        u'spatialImp': u'cpp', 
-        u'inputWidth': 0, 
-        u'spVerbosity': 0, 
-        u'synPermConnected': 0.2, 
-        u'synPermActiveInc': 0.003, 
-        u'potentialPct': 0.8, 
-        u'numActiveColumnsPerInhArea': 40, 
-        u'boostStrength': 0.0, 
-        u'globalInhibition': 1, 
-        u'seed': 1956}, 
-    u'trainSPNetOnlyIfRequested': False, 
-    u'clParams': {
-        u'alpha': 0.035828933612158, 
-        u'verbosity': 0, 
-        u'steps': u'1', 
-        u'regionName': 
-        u'SDRClassifierRegion'}, 
-    u'tmParams': {
-        u'columnCount': 2048, 
-        u'activationThreshold': 13, 
-        u'pamLength': 3, 
-        u'cellsPerColumn': 32, 
-        u'permanenceDec': 0.1, 
-        u'minThreshold': 10, 
-        u'inputWidth': 2048, 
-        u'maxSynapsesPerSegment': 32, 
-        u'outputType': u'normal', 
-        u'initialPerm': 0.21, 
-        u'globalDecay': 0.0, 
-        u'maxAge':0, 
-        u'newSynapseCount': 20, 
-        u'maxSegmentsPerCell': 128, 
-        u'permanenceInc': 0.1, 
-        u'temporalImp': u'cpp', 
-        u'seed': 1960, 
-        u'verbosity': 0}, 
-    u'tmEnable': True, 
-    u'clEnable': False, 
-    u'spEnable': True, 
-    u'inferenceType': u'TemporalAnomaly'}
-}
-
-# these params can be used with our model and are equivalent (where possible) to that of numenta_detector
-# TODO optional: optimize these params, either manually and/or swarming. But first keep comparable to numenta_detector
 parameters_numenta_comparable = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
   'enc': {
-    "value" : #RDSE for value
-      {'resolution': 0.001, 'size': 4000, 'sparsity': 0.2},
-    "time": {  #DateTime for timestamps
+    "value" : # RDSE for value
+      {'resolution': 0.001,
+        'size': 4000,
+        'sparsity': 0.10
+      },
+    "time": {  # DateTime for timestamps
         'timeOfDay': (21, 9.49), 
         'weekend': 0 #21 TODO try impact of weekend
         }},
@@ -130,9 +56,9 @@ parameters_numenta_comparable = {
   'sp': {
     'boostStrength': 0.0,
     'columnCount': 2048,
-    'localAreaDensity': 0.04395604395604396, # numenta's numActiveColumnsPerInhArea=40 deprecated, compute corresponding value?
-    'potentialPct': 0.8,
-    'synPermActiveInc': 0.005,
+    'localAreaDensity': 40/2048,
+    'potentialPct': 0.4,
+    'synPermActiveInc': 0.003,
     'synPermConnected': 0.2,
     'synPermInactiveDec': 0.0005},
   'tm': {
@@ -151,42 +77,6 @@ parameters_numenta_comparable = {
       #'probationaryPeriod': self.probationaryPeriod-default_parameters["anomaly"]["likelihood"]["learningPeriod"],
       'probationaryPct': 0.1,
       'reestimationPeriod': 100}}
-}
-
-# default parameters used with our model (originaly taken from `hotgym.py`)
-# TODO optional: optimize these params, either manually and/or swarming.
-default_paramenters = {
-# there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
-  'enc': {
-    "value" : #RDSE for value
-      {'resolution': 0.001, 'size': 700, 'sparsity': 0.02},
-    "time":   #DateTime for timestamps
-      {'timeOfDay': (30, 1), 'weekend': 21}},
-  'predictor': {'sdrc_alpha': 0.1},
-  'sp': {
-      'boostStrength': 3.0,
-      'columnCount': 1638,
-      'localAreaDensity': 0.04395604395604396,
-      'potentialPct': 0.85,
-      'synPermActiveInc': 0.04,
-      'synPermConnected': 0.14,
-      'synPermInactiveDec': 0.006},
-  'tm': {
-      'activationThreshold': 17,
-      'cellsPerColumn': 13,
-      'initialPerm': 0.21,
-      'maxSegmentsPerCell': 128,
-      'maxSynapsesPerSegment': 64,
-      'minThreshold': 10,
-      'newSynapseCount': 32,
-      'permanenceDec': 0.1,
-      'permanenceInc': 0.1},
-  'anomaly': {
-      'likelihood': {
-          #'learningPeriod': int(math.floor(self.probationaryPeriod / 2.0)),
-          #'probationaryPeriod': self.probationaryPeriod-default_parameters["anomaly"]["likelihood"]["learningPeriod"],
-          'probationaryPct': 0.1,
-          'reestimationPeriod': 100}}
 }
 
 
@@ -313,8 +203,8 @@ class HtmcoreDetector(AnomalyDetector):
                                  estimationSamples= self.probationaryPeriod - learningPeriod,
                                  reestimationPeriod= anParams["reestimationPeriod"])
     # Predictor
-    self.predictor = Predictor( steps=[1, 5], alpha=parameters["predictor"]['sdrc_alpha'] )
-    predictor_resolution = 1
+    # self.predictor = Predictor( steps=[1, 5], alpha=parameters["predictor"]['sdrc_alpha'] )
+    # predictor_resolution = 1
 
 
   def modelRun(self, ts, val):
@@ -385,8 +275,9 @@ class HtmcoreDetector(AnomalyDetector):
 
       # 5. print stats
       if self.verbose and self.iteration_ % 1000 == 0:
-          print(enc_info)
-          print(sp_info)
-          print(tm_info)
+          # print(self.enc_info)
+          # print(self.sp_info)
+          # print(self.tm_info)
+          pass
 
       return (anomalyScore, raw)
