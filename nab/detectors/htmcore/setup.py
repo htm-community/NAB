@@ -19,6 +19,7 @@
 # ----------------------------------------------------------------------
 
 import os
+import sys
 import pkg_resources
 import warnings
 from setuptools import setup, find_packages
@@ -26,10 +27,9 @@ from setuptools import setup, find_packages
 REPO_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-
 # Utility function to read the README file.
-# Used for the long_description.  It's nice, because now 1) we have a top level
-# README file and 2) it's easier to type in the README file than to put a raw
+# Used for the long_description.  It"s nice, because now 1) we have a top level
+# README file and 2) it"s easier to type in the README file than to put a raw
 # string in below ...
 def read(fname):
   with open(os.path.join(os.path.dirname(__file__), fname)) as f:
@@ -44,13 +44,10 @@ def nupicInstalled():
    :return: boolean
   """
   try:
-    _ = pkg_resources.get_distribution("nupic")
+    _ = pkg_resources.get_distribution("htm.core")
     return True
   except pkg_resources.DistributionNotFound:
-    pass  # Silently ignore. NuPIC will be installed later.
-
-  return False
-
+    return False  # Silently ignore. NuPIC will be installed later.
 
 
 def parseFile(requirementFile):
@@ -74,22 +71,25 @@ def findRequirements():
   Read the requirements.txt file and parse into requirements for setup's
   install_requirements option.
   """
-  requirementsPath = os.path.join(REPO_DIR, "requirements.txt")
-  requirements = parseFile(requirementsPath)
+  requirements = parseFile(os.path.join(REPO_DIR, "requirements.txt")) #REPO_DIR is local htmcore/ "repo"
 
-  if nupicInstalled():
-    # The user already has a version of NuPIC installed. We'll remove the entry
-    # in requirements.txt to not conflate the two and will issue a user warning.
-    reqs = []
-    for req in requirements:
-      if "nupic" != req.split("==")[0]:
-        reqs.append(req)
-      else:
-        warnings.warn("NuPIC is already installed so %s from requirements.txt "
-                      "will be not be installed." % req)
-  else:
-    reqs = requirements
-  return reqs
+  if not nupicInstalled():
+    # The user already has a version of htm.core (NuPIC) installed. If not, we'll attempt custom install from git.
+    # custom install htm.core #TODO when htm.core is published on PyPI, remove this whole custom setup.py, and just add htm.core to REPO/requirements.txt
+    try:
+      os.system("git status")
+    except:
+      raise "Git must be installed for htm.core detector installation!"
+
+    curr_dir = os.getcwd()
+    os.chdir(REPO_DIR)
+    os.system("git clone --depth=5 https://github.com/htm-community/htm.core")
+    os.chdir(os.path.join(REPO_DIR, "htm.core"))
+    os.system("git pull origin master") #if the clone fails (repo exists) we want to update it
+    os.system("python setup.py install") #installing htm.core
+    os.chdir(curr_dir)
+
+  return requirements
 
 
 
@@ -97,34 +97,19 @@ if __name__ == "__main__":
   requirements = findRequirements()
 
   setup(
-    name="nab",
+    name="nab-detector-htmcore",
     version="1.0",
-    author="Alexander Lavin",
+    author="@breznak",
     author_email="nab@numenta.org",
     description=(
-      "Numenta Anomaly Benchmark: A benchmark for streaming anomaly prediction"),
+      "HTH.core detector from HTM community repo for NAB (in Python 3)"),
     license="AGPL",
     packages=find_packages(),
-    long_description=read("README.md"),
+    long_description=read(os.path.join(REPO_DIR, "README.md")),
     install_requires=requirements,
-    include_package_data=True,
     entry_points={
       "console_scripts": [
         "nab-plot = nab.plot:main",
       ],
     },
   )
-
-  #install py2 dependencies if possible
-  try:
-    import os
-    os.system('/bin/bash ./install_py2_detectors.sh')
-  except:
-    print("Unable to install python2 dependencies: numenta, numentaTM, htmjava detectors not available!")
-    
-  # install community HTM htm.core
-  try: 
-    import os
-    os.system('python nab/detectors/htmcore/setup.py install')
-  except:
-    print("Failed to install htm.core detector!")
