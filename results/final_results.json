@@ -15,9 +15,9 @@
         "standard": 16.43666922426724
     },
     "htmcore": {
-        "reward_low_FN_rate": 66.1922106936328,
-        "reward_low_FP_rate": 58.7930712907694,
-        "standard": 63.081419488725054
+        "reward_low_FN_rate": 28.85203529943721,
+        "reward_low_FP_rate": 23.591809889328452,
+        "standard": 26.783416390999154
     },
     "htmjava": {
         "reward_low_FN_rate": 70.42407766520115,
@@ -35,14 +35,14 @@
         "standard": 0.0
     },
     "numenta": {
-        "reward_low_FN_rate": 74.3202443095115,
-        "reward_low_FP_rate": 63.11684160219828,
-        "standard": 70.10105611943965
+        "reward_low_FN_rate": 74.32024430952228,
+        "reward_low_FP_rate": 63.20918500249927,
+        "standard": 70.10105611945585
     },
     "numentaTM": {
-        "reward_low_FN_rate": 69.18506822906035,
-        "reward_low_FP_rate": 56.665308225043105,
-        "standard": 64.55346441254311
+        "reward_low_FN_rate": 69.37610882261879,
+        "reward_low_FP_rate": 56.665308225036526,
+        "standard": 64.55346441255789
     },
     "random": {
         "reward_low_FN_rate": 25.876351314080456,
