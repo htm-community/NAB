@@ -39,13 +39,14 @@ parameters_numenta_comparable = {
   'enc': {
     "value" : # RDSE for value
       {'resolution': 0.9,
-        'size': 800,
+        'size': 400,
         'sparsity': 0.10
       },
     "time": {  # DateTime for timestamps
-        'timeOfDay': (20, 1),
-        'dayOfWeek': 80,
-        'weekend': 0 #21 TODO try impact of weekend
+        'season': (1, 30), # represents months, each "season" is 30 days
+        'timeOfDay': (1, 8), #40 on bits for each hour
+        'dayOfWeek': 20, 
+        'weekend': 0, #TODO try impact of weekend
         }},
   'predictor': {'sdrc_alpha': 0.1},
   'sp': {
@@ -136,7 +137,9 @@ class HtmcoreDetector(AnomalyDetector):
     ## setup Enc, SP, TM, Likelihood
     # Make the Encoders.  These will convert input data into binary representations.
     self.encTimestamp = DateEncoder(timeOfDay= parameters["enc"]["time"]["timeOfDay"],
-                                    weekend  = parameters["enc"]["time"]["weekend"])
+                                    weekend  = parameters["enc"]["time"]["weekend"],
+                                    season   = parameters["enc"]["time"]["season"],
+                                    dayOfWeek= parameters["enc"]["time"]["dayOfWeek"])
 
     scalarEncoderParams            = RDSE_Parameters()
     scalarEncoderParams.size       = parameters["enc"]["value"]["size"]
