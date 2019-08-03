@@ -38,12 +38,13 @@ parameters_numenta_comparable = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
   'enc': {
     "value" : # RDSE for value
-      {'resolution': 0.001,
-        'size': 4000,
+      {'resolution': 0.9,
+        'size': 800,
         'sparsity': 0.10
       },
     "time": {  # DateTime for timestamps
-        'timeOfDay': (21, 9.49), 
+        'timeOfDay': (20, 1),
+        'dayOfWeek': 80,
         'weekend': 0 #21 TODO try impact of weekend
         }},
   'predictor': {'sdrc_alpha': 0.1},
@@ -52,13 +53,13 @@ parameters_numenta_comparable = {
     'columnCount': 2048,
     'localAreaDensity': 40/2048,
     'potentialPct': 0.4,
-    'synPermActiveInc': 0.003,
-    'synPermConnected': 0.2,
-    'synPermInactiveDec': 0.0005},
+    'synPermActiveInc': 0.1,
+    'synPermConnected': 0.5,
+    'synPermInactiveDec': 0.05},
   'tm': {
     'activationThreshold': 13,
-    'cellsPerColumn': 32,
-    'initialPerm': 0.21,
+    'cellsPerColumn': 4,
+    'initialPerm': 0.51,
     'maxSegmentsPerCell': 128,
     'maxSynapsesPerSegment': 32,
     'minThreshold': 10,
@@ -248,9 +249,9 @@ class HtmcoreDetector(AnomalyDetector):
 
       # 5. print stats
       if self.verbose and self.iteration_ % 1000 == 0:
-          # print(self.enc_info)
-          # print(self.sp_info)
-          # print(self.tm_info)
+          print(self.enc_info)
+          print(self.sp_info)
+          print(self.tm_info)
           pass
 
       return (anomalyScore, raw)
