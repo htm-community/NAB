@@ -34,12 +34,6 @@ from htm.bindings.algorithms import Predictor
 
 from nab.detectors.base import AnomalyDetector
 
-# Fraction outside of the range of values seen so far that will be considered
-# a spatial anomaly regardless of the anomaly likelihood calculation. This
-# accounts for the human labelling bias for spatial values larger than what
-# has been seen so far.
-SPATIAL_TOLERANCE = 0.05
-
 parameters_numenta_comparable = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
   'enc': {
@@ -96,7 +90,6 @@ class HtmcoreDetector(AnomalyDetector):
     # useful for checking the efficacy of AnomalyLikelihood. You will need
     # to re-optimize the thresholds when running with this setting.
     self.useLikelihood      = True
-    self.useSpatialAnomaly  = True
     self.verbose            = True
 
     ## internal members 
@@ -138,11 +131,6 @@ class HtmcoreDetector(AnomalyDetector):
     #parameters = default_parameters
     parameters = parameters_numenta_comparable
 
-    # setup spatial anomaly
-    if self.useSpatialAnomaly:
-      # Keep track of value range for spatial anomaly detection
-      self.minVal = None
-      self.maxVal = None
 
     ## setup Enc, SP, TM, Likelihood
     # Make the Encoders.  These will convert input data into binary representations.
@@ -245,22 +233,7 @@ class HtmcoreDetector(AnomalyDetector):
       #TODO optional: also return an error metric on predictions (RMSE, R2,...)
 
       # 4.2 Anomaly 
-      # handle spatial, contextual (raw, likelihood) anomalies
-      # -Spatial
-      spatialAnomaly = 0.0 #TODO optional: make this computed in SP (and later improve)
-      if self.useSpatialAnomaly:
-        # Update min/max values and check if there is a spatial anomaly
-        if self.minVal != self.maxVal:
-          tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
-          maxExpected = self.maxVal + tolerance
-          minExpected = self.minVal - tolerance
-          if val > maxExpected or val < minExpected:
-            spatialAnomaly = 1.0
-        if self.maxVal is None or val > self.maxVal:
-          self.maxVal = val
-        if self.minVal is None or val < self.minVal:
-          self.minVal = val
-
+      # handle contextual (raw, likelihood) anomalies
       # -temporal (raw)
       raw = self.tm.anomaly
       temporalAnomaly = raw
@@ -271,7 +244,7 @@ class HtmcoreDetector(AnomalyDetector):
         logScore = self.anomalyLikelihood.computeLogLikelihood(like)
         temporalAnomaly = logScore #TODO optional: TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood
 
-      anomalyScore = max(spatialAnomaly, temporalAnomaly) # this is the "main" anomaly, compared in NAB
+      anomalyScore = temporalAnomaly # this is the "main" anomaly, compared in NAB
 
       # 5. print stats
       if self.verbose and self.iteration_ % 1000 == 0:
