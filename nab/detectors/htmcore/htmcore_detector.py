@@ -43,20 +43,22 @@ parameters_numenta_comparable = {
         'sparsity': 0.10
       },
     "time": {  # DateTime for timestamps
+        # fields with 1 bit encoding are effectively disabled (have no implact on SP, take little input space)
+        # it is possible to totaly ignore the timestamp (this encoder) input, and results are not much worse.
         'season': (1, 30), # represents months, each "season" is 30 days
-        'timeOfDay': (1, 8), #40 on bits for each hour
-        'dayOfWeek': 20, 
+        'timeOfDay': (1, 1), #40 on bits for each hour
+        'dayOfWeek': 20, #this field has most significant impact, as incorporates (day + hours)
         'weekend': 0, #TODO try impact of weekend
         }},
   'predictor': {'sdrc_alpha': 0.1},
   'sp': {
     'boostStrength': 0.0,
-    'columnCount': 2048,
-    'localAreaDensity': 40/2048,
+    'columnCount': 1024*1,
+    'localAreaDensity': 40/1024, #TODO accuracy extremely sensitive to this value (??) 
     'potentialPct': 0.4,
-    'synPermActiveInc': 0.1,
+    'synPermActiveInc': 0.05,
     'synPermConnected': 0.5,
-    'synPermInactiveDec': 0.05},
+    'synPermInactiveDec': 0.01},
   'tm': {
     'activationThreshold': 13,
     'cellsPerColumn': 4,
