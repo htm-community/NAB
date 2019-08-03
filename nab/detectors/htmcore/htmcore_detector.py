@@ -248,7 +248,7 @@ class HtmcoreDetector(AnomalyDetector):
       # handle spatial, contextual (raw, likelihood) anomalies
       # -Spatial
       spatialAnomaly = 0.0 #TODO optional: make this computed in SP (and later improve)
-      if False and self.useSpatialAnomaly:
+      if self.useSpatialAnomaly:
         # Update min/max values and check if there is a spatial anomaly
         if self.minVal != self.maxVal:
           tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE

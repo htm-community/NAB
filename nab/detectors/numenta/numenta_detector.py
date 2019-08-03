@@ -104,7 +104,7 @@ class NumentaDetector(AnomalyDetector):
     else:
       finalScore = rawScore
 
-    if False and spatialAnomaly:
+    if spatialAnomaly:
       finalScore = 1.0
 
     return (finalScore, rawScore)
