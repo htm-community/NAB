@@ -54,8 +54,10 @@ parameters_numenta_comparable = {
   'sp': {
     'boostStrength': 0.0,
     'columnCount': 1024*1,
-    'localAreaDensity': 40/1024, #TODO accuracy extremely sensitive to this value (??) 
+    'localAreaDensity': 40/(1024*1), #TODO accuracy extremely sensitive to this value (??)
+    'potentialRadius': 999999, # 2 * 20 -> 40 of 400 (input size) = 10% #TODO this is global all-to-all connection, try more local
     'potentialPct': 0.4,
+    'stimulusThreshold': 4,
     'synPermActiveInc': 0.05,
     'synPermConnected': 0.5,
     'synPermInactiveDec': 0.01},
@@ -159,9 +161,10 @@ class HtmcoreDetector(AnomalyDetector):
       inputDimensions            = (encodingWidth,),
       columnDimensions           = (spParams["columnCount"],),
       potentialPct               = spParams["potentialPct"],
-      potentialRadius            = encodingWidth,
+      potentialRadius            = spParams["potentialRadius"],
       globalInhibition           = True,
       localAreaDensity           = spParams["localAreaDensity"],
+      stimulusThreshold          = spParams["stimulusThreshold"],
       synPermInactiveDec         = spParams["synPermInactiveDec"],
       synPermActiveInc           = spParams["synPermActiveInc"],
       synPermConnected           = spParams["synPermConnected"],
