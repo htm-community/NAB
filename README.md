@@ -143,7 +143,6 @@ Other platforms may work but have not been tested.
 You need to manually install the following:
 
 - [Python 3](https://www.python.org/download/)
-- [pip](https://pip.pypa.io/en/latest/installing.html)
 
 #### Download this repository
 
@@ -155,7 +154,7 @@ or `git clone https://github.com/htm-community/NAB`
 Recommended:
 
 	cd NAB
-	pip install . --user
+	pip install . --user -i https://test.pypi.org/simple/
 
 
 If you want to manage dependency versions yourself, you can skip dependencies
@@ -167,7 +166,10 @@ with:
 If you are actively working on the code and are familiar with manual
 PYTHONPATH setup:
 
-	pip install -e . --install-option="--prefix=/some/other/path/"
+	pip install -e . --install-option="--prefix=/some/other/path/" -i https://test.pypi.org/simple/
+
+Note:
+  - the `-i https://test.pypi.org/simple/` allows to install `htm.core` from our testing PyPI repository. 
 
 
 ### Usage
