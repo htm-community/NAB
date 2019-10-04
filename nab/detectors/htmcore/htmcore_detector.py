@@ -38,24 +38,24 @@ parameters_numenta_comparable = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
   'enc': {
     "value" : # RDSE for value
-      {'resolution': 0.8,
-        'size': 1000,
-        'sparsity': 0.30
+      {'resolution': 0.9,
+        'size': 400,
+        'sparsity': 0.10
       },
     "time": {  # DateTime for timestamps
         # fields with 1 bit encoding are effectively disabled (have no implact on SP, take little input space)
         # it is possible to totaly ignore the timestamp (this encoder) input, and results are not much worse.
         'season': (1, 30), # represents months, each "season" is 30 days
         'timeOfDay': (1, 1), #40 on bits for each hour
-        'dayOfWeek': 50, #this field has most significant impact, as incorporates (day + hours)
+        'dayOfWeek': 20, #this field has most significant impact, as incorporates (day + hours)
         'weekend': 0, #TODO try impact of weekend
         }},
   'predictor': {'sdrc_alpha': 0.1},
   'sp': {
     'boostStrength': 0.0,
-    'columnCount': 1024*4,
-    'localAreaDensity': 0.04, #40/(1024*2), #TODO accuracy extremely sensitive to this value (??)
-    'potentialRadius': 100, # 2 * 20 -> 40 of 400 (input size) = 10% #TODO this is global all-to-all connection, try more local
+    'columnCount': 1024*1,
+    'localAreaDensity': 40/(1024*1), #TODO accuracy extremely sensitive to this value (??)
+    'potentialRadius': 999999, # 2 * 20 -> 40 of 400 (input size) = 10% #TODO this is global all-to-all connection, try more local
     'potentialPct': 0.4,
     'stimulusThreshold': 4,
     'synPermActiveInc': 0.05,
