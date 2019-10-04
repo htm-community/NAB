@@ -21,7 +21,7 @@ so you don't have to do anything to have it available.
 - [htm.core](https://github.com/htm-community/htm.core)
     - You can either build it yourself from source, 
     - Install from [binary releases](https://github.com/htm-community/htm.core/releases)
-    - Or easiest, `python -m pip install -i https://test.pypi.org/simple/ htm.core`
+    - Or easiest, `python -m pip install --extra-index-url https://test.pypi.org/simple/ htm.core`
 
 ## Usage
 

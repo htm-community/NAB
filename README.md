@@ -154,7 +154,7 @@ or `git clone https://github.com/htm-community/NAB`
 Recommended:
 
 	cd NAB
-	pip install . --user -i https://test.pypi.org/simple/
+	pip install . --user --extra-index-url https://test.pypi.org/simple/
 
 
 If you want to manage dependency versions yourself, you can skip dependencies
@@ -166,10 +166,10 @@ with:
 If you are actively working on the code and are familiar with manual
 PYTHONPATH setup:
 
-	pip install -e . --install-option="--prefix=/some/other/path/" -i https://test.pypi.org/simple/
+	pip install -e . --install-option="--prefix=/some/other/path/" --extra-index-url https://test.pypi.org/simple/
 
 Note:
-  - the `-i https://test.pypi.org/simple/` allows to install `htm.core` from our testing PyPI repository. 
+  - the `--extra-index-url https://test.pypi.org/simple/` allows to install `htm.core` from our testing PyPI repository. 
 
 
 ### Usage
