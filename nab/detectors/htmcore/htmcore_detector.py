@@ -25,7 +25,7 @@ import datetime
 
 # htm.core imports
 from htm.bindings.sdr import SDR, Metrics
-from htm.encoders.rdse import RDSE, RDSE_Parameters
+from htm.encoders.rdse import RDSE as Encoder, RDSE_Parameters as EncParameters
 from htm.encoders.date import DateEncoder
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
@@ -145,12 +145,12 @@ class HtmcoreDetector(AnomalyDetector):
                                     season   = parameters["enc"]["time"]["season"],
                                     dayOfWeek= parameters["enc"]["time"]["dayOfWeek"])
 
-    scalarEncoderParams            = RDSE_Parameters()
+    scalarEncoderParams            = EncParameters()
     scalarEncoderParams.size       = parameters["enc"]["value"]["size"]
     scalarEncoderParams.sparsity   = parameters["enc"]["value"]["sparsity"]
     scalarEncoderParams.resolution = parameters["enc"]["value"]["resolution"]
 
-    self.encValue = RDSE( scalarEncoderParams )
+    self.encValue = Encoder( scalarEncoderParams )
     encodingWidth = (self.encTimestamp.size + self.encValue.size)
     self.enc_info = Metrics( [encodingWidth], 999999999 )
 
