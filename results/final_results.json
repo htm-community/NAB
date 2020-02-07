@@ -14,6 +14,11 @@
         "reward_low_FP_rate": 3.1909311068965485,
         "standard": 16.43666922426724
     },
+    "htmcore": {
+        "reward_low_FN_rate": 66.1922106936328,
+        "reward_low_FP_rate": 58.7930712907694,
+        "standard": 63.081419488725054
+    },
     "htmjava": {
         "reward_low_FN_rate": 70.42407766520115,
         "reward_low_FP_rate": 53.25694971610345,
