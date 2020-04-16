@@ -72,8 +72,13 @@ def optimizeThreshold(args):
     relativePath = convertResultsPathToDataPath(
       os.path.join(detectorName, relativePath))
 
-    windows = corpusLabel.windows[relativePath]
-    labels = corpusLabel.labels[relativePath]
+    try:
+      windows = corpusLabel.windows[relativePath]
+      labels = corpusLabel.labels[relativePath]
+    except KeyError:
+      print("Does not contain file: "+str(relativePath))
+      continue
+
     timestamps = labels['timestamp']
     anomalyScores = dataSet.data["anomaly_score"]
 
