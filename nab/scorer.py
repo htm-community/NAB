@@ -81,10 +81,14 @@ def scoreCorpus(threshold, args):
     fileName =  detectorName + "_" + fileName
     outputPath = os.path.join(resultsDetectorDir, relativeDir, fileName)
 
-    windows = corpusLabel.windows[relativePath]
-    labels = corpusLabel.labels[relativePath]
-    timestamps = labels['timestamp']
+    try:
+      windows = corpusLabel.windows[relativePath]
+      labels = corpusLabel.labels[relativePath]
+    except KeyError:
+      print("Does not contain file: "+str(relativePath))
+      continue
 
+    timestamps = labels['timestamp']
     anomalyScores = dataSet.data["anomaly_score"]
 
     args.append((
