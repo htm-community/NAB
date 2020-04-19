@@ -35,49 +35,56 @@ from htm.bindings.algorithms import Predictor
 from nab.detectors.base import AnomalyDetector
 
 parameters_numenta_comparable = {
-  # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
-  'enc': {
-    "value" : # RDSE for value
-      {'resolution': 0.9,
-        'size': 400,
-        'sparsity': 0.10
-      },
-    "time": {  # DateTime for timestamps
-        # fields with 1 bit encoding are effectively disabled (have no implact on SP, take little input space)
-        # it is possible to totaly ignore the timestamp (this encoder) input, and results are not much worse.
-        'season': (1, 30), # represents months, each "season" is 30 days
-        'timeOfDay': (1, 1), #40 on bits for each hour
-        'dayOfWeek': 20, #this field has most significant impact, as incorporates (day + hours)
-        'weekend': 0, #TODO try impact of weekend
-        }},
-  'predictor': {'sdrc_alpha': 0.1},
-  'sp': {
-    'boostStrength': 0.0,
-    'columnCount': 1024*1,
-    'localAreaDensity': 40/(1024*1), #TODO accuracy extremely sensitive to this value (??)
-    'potentialRadius': 999999, # 2 * 20 -> 40 of 400 (input size) = 10% #TODO this is global all-to-all connection, try more local
-    'potentialPct': 0.4,
-    'stimulusThreshold': 4,
-    'synPermActiveInc': 0.05,
-    'synPermConnected': 0.5,
-    'synPermInactiveDec': 0.01},
-  'tm': {
-    'activationThreshold': 13,
-    'cellsPerColumn': 4,
-    'initialPerm': 0.51,
-    'maxSegmentsPerCell': 128,
-    'maxSynapsesPerSegment': 32,
-    'minThreshold': 10,
-    'newSynapseCount': 20,
-    'permanenceDec': 0.1,
-    'permanenceInc': 0.1},
-  'anomaly': {
-    'likelihood': {
-      #'learningPeriod': int(math.floor(self.probationaryPeriod / 2.0)),
-      #'probationaryPeriod': self.probationaryPeriod-default_parameters["anomaly"]["likelihood"]["learningPeriod"],
-      'probationaryPct': 0.1,
-      'reestimationPeriod': 100}}
-}
+        "enc": {
+            "value": {
+                # "resolution": 0.9, calculate by max(0.001, (maxVal - minVal) / numBuckets) where numBuckets = 130
+                "size": 400,
+                "activeBits": 21,
+                "seed": 5,
+            },
+            "time": {
+                "timeOfDay": (21, 9.49),
+            }
+        },
+        "sp": {
+            # inputDimensions: use width of encoding
+            "columnDimensions": 2048,
+            # "potentialRadius": use width of encoding
+            "potentialPct": 0.8,
+            "globalInhibition": True,
+            "localAreaDensity": 0.025049634479368352,  # optimize this one
+            "stimulusThreshold": 0,
+            "synPermInactiveDec": 0.0005,
+            "synPermActiveInc": 0.003,
+            "synPermConnected": 0.2,
+            "boostStrength": 0.0,
+            "wrapAround": True,
+            "minPctOverlapDutyCycle": 0.001,
+            "dutyCyclePeriod": 1000,
+            "seed": 5,
+        },
+        "tm": {
+            "columnDimensions": 2048,
+            "cellsPerColumn": 32,
+            "activationThreshold": 20,
+            "initialPermanence": 0.24,
+            "connectedPermanence": 0.5,
+            "minThreshold": 13,
+            "maxNewSynapseCount": 31,
+            "permanenceIncrement": 0.04,
+            "permanenceDecrement": 0.008,
+            "predictedSegmentDecrement": 0.001,
+            "maxSegmentsPerCell": 128,
+            "maxSynapsesPerSegment": 128,
+            "seed": 5,
+        },
+        "anomaly": {
+            "likelihood": {
+                "probationaryPct": 0.1,
+                "reestimationPeriod": 100
+            }
+        }
+    }
 
 
 class HtmcoreDetector(AnomalyDetector):
@@ -140,15 +147,15 @@ class HtmcoreDetector(AnomalyDetector):
 
     ## setup Enc, SP, TM, Likelihood
     # Make the Encoders.  These will convert input data into binary representations.
-    self.encTimestamp = DateEncoder(timeOfDay= parameters["enc"]["time"]["timeOfDay"],
-                                    weekend  = parameters["enc"]["time"]["weekend"],
-                                    season   = parameters["enc"]["time"]["season"],
-                                    dayOfWeek= parameters["enc"]["time"]["dayOfWeek"])
+    self.encTimestamp = DateEncoder(timeOfDay=parameters["enc"]["time"]["timeOfDay"])
 
-    scalarEncoderParams            = EncParameters()
-    scalarEncoderParams.size       = parameters["enc"]["value"]["size"]
-    scalarEncoderParams.sparsity   = parameters["enc"]["value"]["sparsity"]
-    scalarEncoderParams.resolution = parameters["enc"]["value"]["resolution"]
+    scalarEncoderParams = EncParameters()
+    scalarEncoderParams.size = parameters["enc"]["value"]["size"]
+    scalarEncoderParams.activeBits = parameters["enc"]["value"]["activeBits"]
+    # scalarEncoderParams.resolution = parameters["enc"]["value"]["resolution"]
+    scalarEncoderParams.resolution = max(0.001, (self.inputMax - self.inputMin) / 130)
+    #scalarEncoderParams.seed = parameters["enc"]["value"]["seed"]
+    self.encValue = Encoder(scalarEncoderParams)
 
     self.encValue = Encoder( scalarEncoderParams )
     encodingWidth = (self.encTimestamp.size + self.encValue.size)
@@ -158,36 +165,40 @@ class HtmcoreDetector(AnomalyDetector):
     # SpatialPooler
     spParams = parameters["sp"]
     self.sp = SpatialPooler(
-      inputDimensions            = (encodingWidth,),
-      columnDimensions           = (spParams["columnCount"],),
-      potentialPct               = spParams["potentialPct"],
-      potentialRadius            = spParams["potentialRadius"],
-      globalInhibition           = True,
-      localAreaDensity           = spParams["localAreaDensity"],
-      stimulusThreshold          = spParams["stimulusThreshold"],
-      synPermInactiveDec         = spParams["synPermInactiveDec"],
-      synPermActiveInc           = spParams["synPermActiveInc"],
-      synPermConnected           = spParams["synPermConnected"],
-      boostStrength              = spParams["boostStrength"],
-      wrapAround                 = True
+        inputDimensions=(encodingWidth,),
+        columnDimensions=(spParams["columnDimensions"],),
+        potentialRadius=encodingWidth,
+        potentialPct=spParams["potentialPct"],
+        globalInhibition=spParams["globalInhibition"],
+        localAreaDensity=spParams["localAreaDensity"],
+        stimulusThreshold=spParams["stimulusThreshold"],
+        synPermInactiveDec=spParams["synPermInactiveDec"],
+        synPermActiveInc=spParams["synPermActiveInc"],
+        synPermConnected=spParams["synPermConnected"],
+        boostStrength=spParams["boostStrength"],
+        wrapAround=spParams["wrapAround"],
+        minPctOverlapDutyCycle=spParams["minPctOverlapDutyCycle"],
+        dutyCyclePeriod=spParams["dutyCyclePeriod"],
+        #seed=spParams["seed"],
     )
     self.sp_info = Metrics( self.sp.getColumnDimensions(), 999999999 )
 
     # TemporalMemory
     tmParams = parameters["tm"]
     self.tm = TemporalMemory(
-      columnDimensions          = (spParams["columnCount"],),
-      cellsPerColumn            = tmParams["cellsPerColumn"],
-      activationThreshold       = tmParams["activationThreshold"],
-      initialPermanence         = tmParams["initialPerm"],
-      connectedPermanence       = spParams["synPermConnected"],
-      minThreshold              = tmParams["minThreshold"],
-      maxNewSynapseCount        = tmParams["newSynapseCount"],
-      permanenceIncrement       = tmParams["permanenceInc"],
-      permanenceDecrement       = tmParams["permanenceDec"],
-      predictedSegmentDecrement = 0.0,
-      maxSegmentsPerCell        = tmParams["maxSegmentsPerCell"],
-      maxSynapsesPerSegment     = tmParams["maxSynapsesPerSegment"]
+        columnDimensions=(tmParams["columnDimensions"],),
+        cellsPerColumn=tmParams["cellsPerColumn"],
+        activationThreshold=tmParams["activationThreshold"],
+        initialPermanence=tmParams["initialPermanence"],
+        connectedPermanence=tmParams["connectedPermanence"],
+        minThreshold=tmParams["minThreshold"],
+        maxNewSynapseCount=tmParams["maxNewSynapseCount"],
+        permanenceIncrement=tmParams["permanenceIncrement"],
+        permanenceDecrement=tmParams["permanenceDecrement"],
+        predictedSegmentDecrement=tmParams["predictedSegmentDecrement"],
+        maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
+        maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"],
+        #seed=tmParams["seed"]
     )
     self.tm_info = Metrics( [self.tm.numberOfCells()], 999999999 )
 
