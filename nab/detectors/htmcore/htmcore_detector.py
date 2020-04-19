@@ -54,10 +54,10 @@ parameters_numenta_comparable = {
             "globalInhibition": True,
             "localAreaDensity": 0.025,  # optimize this one
             "stimulusThreshold": 2,
-            "synPermInactiveDec": 0.0005,
-            "synPermActiveInc": 0.003,
-            "synPermConnected": 0.2,
-            "boostStrength": 0.0,
+            "synPermInactiveDec": 0.001,
+            "synPermActiveInc": 0.006,
+            "synPermConnected": 0.5, #this shouldn't make any effect, keep as intended by Connections 
+            "boostStrength": 0.0, #so far, boosting negatively affects results. Suggest leaving OFF (0.0)
             "wrapAround": True,
             "minPctOverlapDutyCycle": 0.001,
             "dutyCyclePeriod": 1000,
