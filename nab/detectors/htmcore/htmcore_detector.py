@@ -79,6 +79,7 @@ parameters_numenta_comparable = {
         "maxSynapsesPerSegment": 128,
         "seed": 5,
     },
+    "spatial_tolerance": 0.05,
     "anomaly": {
         "likelihood": {
             "probationaryPct": 0.1,
@@ -86,12 +87,6 @@ parameters_numenta_comparable = {
         }
     }
 }
-
-# Fraction outside of the range of values seen so far that will be considered
-# a spatial anomaly regardless of the anomaly likelihood calculation. This
-# accounts for the human labelling bias for spatial values larger than what
-# has been seen so far.
-SPATIAL_TOLERANCE = 0.05
 
 
 class HtmcoreDetector(AnomalyDetector):
@@ -116,6 +111,9 @@ class HtmcoreDetector(AnomalyDetector):
         ## internal members
         # (listed here for easier understanding)
         # initialized in `initialize()`
+        self.spatial_tolerance = None
+        self.minVal = None  # Keep track of value range for spatial anomaly detection
+        self.maxVal = None  # Keep track of value range for spatial anomaly detection
         self.encTimestamp = None
         self.encValue = None
         self.sp = None
@@ -150,9 +148,10 @@ class HtmcoreDetector(AnomalyDetector):
 
         # setup spatial anomaly
         if self.useSpatialAnomaly:
-            # Keep track of value range for spatial anomaly detection
-            self.minVal = None
-            self.maxVal = None
+            self.spatial_tolerance = parameters.get("spatial_tolerance")
+            if self.spatial_tolerance is None:
+                self.spatial_tolerance = 0.05
+
 
         ## setup Enc, SP, TM, Likelihood
         # Make the Encoders.  These will convert input data into binary representations.
@@ -268,7 +267,7 @@ class HtmcoreDetector(AnomalyDetector):
         if self.useSpatialAnomaly:
             # Update min/max values and check if there is a spatial anomaly
             if self.minVal != self.maxVal:
-                tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
+                tolerance = (self.maxVal - self.minVal) * self.spatial_tolerance
                 maxExpected = self.maxVal + tolerance
                 minExpected = self.minVal - tolerance
                 if val > maxExpected or val < minExpected:
