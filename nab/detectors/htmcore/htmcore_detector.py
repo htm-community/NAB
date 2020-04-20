@@ -52,7 +52,8 @@ parameters_numenta_comparable = {
             # "potentialRadius": use width of encoding
             "potentialPct": 0.8,
             "globalInhibition": True,
-            "localAreaDensity": 0.025049634479368352,  # optimize this one
+            "localAreaDensity": 0, ## MUTEX #0.025049634479368352,  # optimize this one
+            "numActiveColumnsPerInhArea": 40, ##MUTEX
             "stimulusThreshold": 0,
             "synPermInactiveDec": 0.0005,
             "synPermActiveInc": 0.003,
@@ -171,6 +172,7 @@ class HtmcoreDetector(AnomalyDetector):
         potentialPct=spParams["potentialPct"],
         globalInhibition=spParams["globalInhibition"],
         localAreaDensity=spParams["localAreaDensity"],
+        numActiveColumnsPerInhArea=spParams["numActiveColumnsPerInhArea"],
         stimulusThreshold=spParams["stimulusThreshold"],
         synPermInactiveDec=spParams["synPermInactiveDec"],
         synPermActiveInc=spParams["synPermActiveInc"],
