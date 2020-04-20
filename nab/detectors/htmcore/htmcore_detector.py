@@ -39,7 +39,7 @@ parameters_numenta_comparable = {
             "value": {
                 # "resolution": 0.9, calculate by max(0.001, (maxVal - minVal) / numBuckets) where numBuckets = 130
                 "size": 400,
-                "activeBits": 21,
+                "activeBits": 21, #results very sensitive to the size/active bits in the input encoders
                 "seed": 5,
             },
             "time": {
@@ -54,18 +54,18 @@ parameters_numenta_comparable = {
             "globalInhibition": True,
             "localAreaDensity": 0, ## MUTEX #0.025049634479368352,  # optimize this one
             "numActiveColumnsPerInhArea": 40, ##MUTEX
-            "stimulusThreshold": 0,
-            "synPermInactiveDec": 0.0005,
-            "synPermActiveInc": 0.003,
-            "synPermConnected": 0.2,
-            "boostStrength": 0.0,
+            "stimulusThreshold": 2,
+            "synPermInactiveDec": 0.001,
+            "synPermActiveInc": 0.006,
+            "synPermConnected": 0.5, #this shouldn't make any effect, keep as intended by Connections 
+            "boostStrength": 0.0, #so far, boosting negatively affects results. Suggest leaving OFF (0.0)
             "wrapAround": True,
             "minPctOverlapDutyCycle": 0.001,
             "dutyCyclePeriod": 1000,
             "seed": 5,
         },
         "tm": {
-            "columnDimensions": 2048,
+            #"columnDimensions": 2048, #must match SP
             "cellsPerColumn": 32,
             "activationThreshold": 20,
             "initialPermanence": 0.24,
@@ -188,7 +188,7 @@ class HtmcoreDetector(AnomalyDetector):
     # TemporalMemory
     tmParams = parameters["tm"]
     self.tm = TemporalMemory(
-        columnDimensions=(tmParams["columnDimensions"],),
+        columnDimensions=(spParams["columnDimensions"],),
         cellsPerColumn=tmParams["cellsPerColumn"],
         activationThreshold=tmParams["activationThreshold"],
         initialPermanence=tmParams["initialPermanence"],
