@@ -107,7 +107,7 @@ class HtmcoreDetector(AnomalyDetector):
     self.useLikelihood      = True
     self.useSpatialAnomaly  = True
     self.verbose            = True
-    self.use_optimization   = True
+    self.use_optimization   = False
 
     ## internal members 
     # (listed here for easier understanding)
