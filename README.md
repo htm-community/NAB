@@ -272,4 +272,4 @@ You can run parameter optimization using your own framework or the framework pro
 2. Build a docker image from the Dockerfile provided in this repo with `docker build -t optimize-htmcore-nab:latest . -f htmcore.Dockerfile`
 3. Then:
     + Option A: Check `optimize_bayesopt.py` for an example on how to run with Bayesian Optimization. Note: The script requires `pip install bayesian-optimization`.
-    + Option B: Check `optimize_swarm.py` for an example on how to run the htm.core optimization framework. You can execute the script using the optimization framework with e.g. `python -m htm.optimization.ae -n 3 --memory_limit 4 -v --swarming 100 optimize_anomaly_swarm.py`
+    + Option B: Check `optimize_swarm.py` for an example on how to run the htm.core optimization framework. You can execute the script using the optimization framework with e.g. `python -m htm.optimization.ae -n 3 --memory_limit 4 -v --swarming 100 optimize_anomaly_swarm.py`. Note for MacOS users: You need to `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running the script. 
