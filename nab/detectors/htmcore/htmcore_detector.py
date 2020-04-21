@@ -82,6 +82,12 @@ parameters_numenta_comparable = {
 
 
 def get_params(filename):
+  """Reads parameters from a json file
+
+  @param filename is a string defining the name of the file to read
+
+  @return dict of parameters
+  """
   dirname = os.path.dirname(__file__)
   filename = os.path.join(dirname, filename)
   with open(filename) as json_file:
@@ -107,6 +113,10 @@ class HtmcoreDetector(AnomalyDetector):
     self.useLikelihood      = True
     self.useSpatialAnomaly  = True
     self.verbose            = True
+
+    # Set this to true if you want to use the optimization.
+    # If true, it reads the parameters from ./params.json
+    # If false, it reads the parameters from ./best_params.json
     self.use_optimization   = False
 
     ## internal members 
