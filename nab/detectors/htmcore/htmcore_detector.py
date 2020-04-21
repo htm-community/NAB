@@ -151,6 +151,8 @@ class HtmcoreDetector(AnomalyDetector):
             self.spatial_tolerance = parameters.get("spatial_tolerance")
             if self.spatial_tolerance is None:
                 self.spatial_tolerance = 0.05
+            self.minVal = None
+            self.maxVal = None
 
 
         ## setup Enc, SP, TM, Likelihood
