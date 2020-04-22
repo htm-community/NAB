@@ -1,3 +1,11 @@
+"""
+This file implements parameter optimization of the htm.core detector on NAB using Bayesian Optimization.
+To run this script, you need to install the bayesian-optimization python module with pip install bayesian-optimization.
+Then, build the Dockerfile provided in the root of this repo using docker build -t optimize-htmcore-nab:latest . -f htmcore.Dockerfile
+Finally, run this script with python optimize_bayesopt.py
+Check https://github.com/fmfn/BayesianOptimization for details on how to use the bayesian optimization module.
+"""
+
 import subprocess
 import os
 import json
@@ -5,7 +13,7 @@ import docker
 import shutil
 from pathlib import Path
 from bayes_opt import BayesianOptimization
-from bayes_opt.logger import JSONLogger
+from bayes_opt.logger import JSONLogger, ScreenLogger
 from bayes_opt.event import Events
 from bayes_opt.util import load_logs
 
@@ -27,14 +35,15 @@ default_parameters = {
         "columnDimensions": 2048,
         # "potentialRadius": use width of encoding
         "potentialPct": 0.8,
-        #"globalInhibition": True, always true (set in detector) as swarm cannot work with bool
-        "localAreaDensity": 0.025,  # optimize this one
-        "stimulusThreshold": 2,
-        "synPermInactiveDec": 0.001,
-        "synPermActiveInc": 0.006,
-        "synPermConnected": 0.5,  # this shouldn't make any effect, keep as intended by Connections
+        #"globalInhibition": True,
+        #"localAreaDensity": 0.025,  ## MUTEX #0.025049634479368352,  # optimize
+        "numActiveColumnsPerInhArea": 0,  ##MUTEX
+        "stimulusThreshold": 0,
+        "synPermInactiveDec": 0.0005,
+        "synPermActiveInc": 0.003,
+        "synPermConnected": 0.2,  # this shouldn't make any effect, keep as intended by Connections
         "boostStrength": 0.0,  # so far, boosting negatively affects results. Suggest leaving OFF (0.0)
-        #"wrapAround": True, always true (set in detector) as swarm cannot work with bool
+        #"wrapAround": True,
         "minPctOverlapDutyCycle": 0.001,
         "dutyCyclePeriod": 1000,
         "seed": 5,
@@ -47,13 +56,14 @@ default_parameters = {
         "connectedPermanence": 0.5,
         "minThreshold": 13,
         "maxNewSynapseCount": 31,
-        "permanenceIncrement": 0.04,
+        #"permanenceIncrement": 0.04, optimize
         "permanenceDecrement": 0.008,
         "predictedSegmentDecrement": 0.001,
         "maxSegmentsPerCell": 128,
         "maxSynapsesPerSegment": 128,
         "seed": 5,
     },
+    "spatial_tolerance": 0.05,
     "anomaly": {
         "likelihood": {
             "probationaryPct": 0.1,
@@ -63,10 +73,11 @@ default_parameters = {
 }
 
 
-def target_func(localAreaDensity):
+def target_func(localAreaDensity, permanenceIncrement):
     # get params
     my_params = default_parameters
     my_params['sp']['localAreaDensity'] = localAreaDensity
+    my_params['tm']['permanenceIncrement'] = permanenceIncrement
 
     # get client
     client = docker.from_env()
@@ -87,7 +98,9 @@ def target_func(localAreaDensity):
 
     # start container
     container.start()
-    container.wait()
+    res = container.wait()
+    if res.get('StatusCode') != 0:
+        raise Exception('Something went wrong. Check the logs of container ' + container.id + ' (' + container.name + ') ' + 'for troubleshooting.')
 
     # copy results file into temp directory with container id in path
     cmd = 'docker cp ' + container.id + ':NAB/results/final_results.json ./temp/' + container.id + '/final_results.json'
@@ -107,10 +120,11 @@ def target_func(localAreaDensity):
     return score
 
 
-def optimize_local_area_density():
+def optimize():
     # define bounds for the params you want to optimize. Can be multivariate. Check https://github.com/fmfn/BayesianOptimization on how to
     bounds = {
         'localAreaDensity': (0.01, 0.15),
+        'permanenceIncrement': (0.01, 0.1),
     }
 
     optimizer = BayesianOptimization(
@@ -125,22 +139,24 @@ def optimize_local_area_density():
         load_logs(optimizer, logs=["./local_area_density_optimization_logs_base.json"]);
 
     # The new log file to write to
-    logger = JSONLogger(path="./local_area_density_optimization_logs.json")
-    optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+    json_logger = JSONLogger(path="./local_area_density_optimization_logs.json")
+    optimizer.subscribe(Events.OPTIMIZATION_STEP, json_logger)
+
+    # Additionally log to console
+    screen_logger = ScreenLogger()
+    optimizer.subscribe(Events.OPTIMIZATION_STEP, screen_logger)
 
     # If you want to guide the optimization process
     val = 0.02
     while val <= 0.04:
-        print('Adding', val)
         optimizer.probe(
             params={
                 'localAreaDensity': val,
+                'permanenceIncrement': 0.04,
             },
             lazy=True,
         )
         val = round(val + 0.001, 3)
-
-    print('Starting optimization...')
 
     optimizer.maximize(
         init_points=20,
@@ -149,6 +165,9 @@ def optimize_local_area_density():
 
     print(optimizer.max)
 
+    # cleanup temp dir
+    shutil.rmtree(os.path.join('temp'))
+
 
 if __name__ == "__main__":
-    optimize_local_area_density()
+    optimize()

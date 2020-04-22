@@ -1,3 +1,11 @@
+"""
+This file implements parameter optimization of the htm.core detector on NAB using the optimization framework provided by htm.core.
+To run this script, build the Dockerfile provided in the root of this repo using docker build -t optimize-htmcore-nab:latest . -f htmcore.Dockerfile
+Finally, run this script with python -m htm.optimization.ae -n 3 --memory_limit 4 -v --swarming 100 optimize_swarm.py
+NOTE: On MacOS, before running the script, disable fork safety with export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+Check https://github.com/htm-community/htm.core/tree/master/py/htm/optimization for details on the optimization framework of htm.core.
+"""
+
 import subprocess
 import sys
 import os
@@ -24,14 +32,15 @@ default_parameters = {
         "columnDimensions": 2048,
         # "potentialRadius": use width of encoding
         "potentialPct": 0.8,
-        #"globalInhibition": True, always true (set in detector) as swarm cannot work with bool
-        "localAreaDensity": 0.025,  # optimize this one
-        "stimulusThreshold": 2,
-        "synPermInactiveDec": 0.001,
-        "synPermActiveInc": 0.006,
-        "synPermConnected": 0.5,  # this shouldn't make any effect, keep as intended by Connections
+        # "globalInhibition": True,
+        "localAreaDensity": 0.025,  ## MUTEX
+        "numActiveColumnsPerInhArea": 0,  ## MUTEX
+        "stimulusThreshold": 0,
+        "synPermInactiveDec": 0.0005,
+        "synPermActiveInc": 0.003,
+        "synPermConnected": 0.2,  # this shouldn't make any effect, keep as intended by Connections
         "boostStrength": 0.0,  # so far, boosting negatively affects results. Suggest leaving OFF (0.0)
-        #"wrapAround": True, always true (set in detector) as swarm cannot work with bool
+        # "wrapAround": True,
         "minPctOverlapDutyCycle": 0.001,
         "dutyCyclePeriod": 1000,
         "seed": 5,
@@ -51,6 +60,7 @@ default_parameters = {
         "maxSynapsesPerSegment": 128,
         "seed": 5,
     },
+    "spatial_tolerance": 0.05,
     "anomaly": {
         "likelihood": {
             "probationaryPct": 0.1,
@@ -80,7 +90,9 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
     # start container
     container.start()
-    container.wait()
+    res = container.wait()
+    if res.get('StatusCode') != 0:
+        raise Exception('Something went wrong. Check the logs of container ' + container.id + ' (' + container.name + ') ' + 'for troubleshooting.')
 
     # copy results file into temp directory with container id in path
     cmd = 'docker cp ' + container.id + ':NAB/results/final_results.json ./temp/' + container.id + '/final_results.json'
