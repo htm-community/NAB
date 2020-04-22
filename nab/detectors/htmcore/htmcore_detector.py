@@ -34,6 +34,109 @@ from htm.bindings.algorithms import Predictor
 
 from nab.detectors.base import AnomalyDetector
 
+
+parameters_best_localAreaDensity = {
+    'anomaly': {
+        'likelihood': {
+            'probationaryPct': 0.09361038526767583,
+            'reestimationPeriod': 93
+        }
+    },
+    'enc': {
+        'time': {
+            'timeOfDay': (19, 9.862972978884644)
+        },
+        'value': {
+            'activeBits': 23,
+            'size': 367,
+            'seed': 5,
+        }
+    },
+    'sp': {
+        'boostStrength': 0.0,
+        "wrapAround": True,
+        'columnDimensions': 2171,
+        'dutyCyclePeriod': 943,
+        'localAreaDensity': 0.02733832231380256,
+        'numActiveColumnsPerInhArea': 0,
+        'minPctOverlapDutyCycle': 0.001040083435774549,
+        'potentialPct': 0.7478919367674115,
+        "globalInhibition": True,
+        'stimulusThreshold': 0,
+        'synPermActiveInc': 0.0032112342797752484,
+        'synPermConnected': 0.19592033087796534,
+        'synPermInactiveDec': 0.000530091821888105,
+        'seed': 5,
+    },
+    'spatial_tolerance': 0.050687542110463626,
+    'tm': {
+        'activationThreshold': 21,
+        'cellsPerColumn': 32,
+        'connectedPermanence': 0.5209199947449604,
+        'initialPermanence': 0.23475728280908847,
+        'maxNewSynapseCount': 33,
+        'maxSegmentsPerCell': 116,
+        'maxSynapsesPerSegment': 126,
+        'minThreshold': 14,
+        'permanenceDecrement': 0.007442196498047676,
+        'permanenceIncrement': 0.042228304892119754,
+        'predictedSegmentDecrement': 0.0009738201927211279,
+        'seed': 5,
+    }
+}
+
+
+parameters_best_numActiveColumnsPerInhArea = {
+    'anomaly': {
+        'likelihood': {
+            'probationaryPct': 0.10793172183908652,
+            'reestimationPeriod': 72
+        }
+    },
+    'enc': {
+        'time': {
+            'timeOfDay': (21, 6.456740123240503)
+        },
+        'value': {
+            'activeBits': 23,
+            'size': 400,
+            'seed': 5,
+        }
+    },
+    'sp': {
+        'boostStrength': 0.0,
+        "wrapAround": True,
+        'columnDimensions': 1487,
+        'dutyCyclePeriod': 1017,
+        'minPctOverlapDutyCycle': 0.0009087943213583929,
+        'localAreaDensity': 0,
+        'numActiveColumnsPerInhArea': 40,
+        'potentialPct': 0.9281708146689587,
+        "globalInhibition": True,
+        'stimulusThreshold': 0,
+        'synPermActiveInc': 0.003892649892638879,
+        'synPermConnected': 0.22110323252238637,
+        'synPermInactiveDec': 0.0006151856346474387,
+        'seed': 5,
+    },
+    'spatial_tolerance': 0.04115653095415344,
+    'tm': {
+        'activationThreshold': 14,
+        'cellsPerColumn': 32,
+        'connectedPermanence': 0.43392460530288607,
+        'initialPermanence': 0.2396689292225759,
+        'maxNewSynapseCount': 27,
+        'maxSegmentsPerCell': 161,
+        'maxSynapsesPerSegment': 141,
+        'minThreshold': 13,
+        'permanenceDecrement': 0.008404653537413292,
+        'permanenceIncrement': 0.046393736556088694,
+        'predictedSegmentDecrement': 0.0009973866301803873,
+        'seed': 5,
+    }
+}
+
+
 parameters_numenta_comparable = {
     "enc": {
         "value": {
@@ -144,7 +247,7 @@ class HtmcoreDetector(AnomalyDetector):
     def initialize(self):
         # toggle parameters here
         # parameters = default_parameters
-        parameters = parameters_numenta_comparable
+        parameters = parameters_best_numActiveColumnsPerInhArea
 
         # setup spatial anomaly
         if self.useSpatialAnomaly:
@@ -164,7 +267,7 @@ class HtmcoreDetector(AnomalyDetector):
         scalarEncoderParams.activeBits = parameters["enc"]["value"]["activeBits"]
         # scalarEncoderParams.resolution = parameters["enc"]["value"]["resolution"]
         scalarEncoderParams.resolution = max(0.001, (self.inputMax - self.inputMin) / 130)
-        # scalarEncoderParams.seed = parameters["enc"]["value"]["seed"]
+        scalarEncoderParams.seed = parameters["enc"]["value"]["seed"]
         self.encValue = Encoder(scalarEncoderParams)
 
         self.encValue = Encoder(scalarEncoderParams)
@@ -190,7 +293,7 @@ class HtmcoreDetector(AnomalyDetector):
             wrapAround=spParams["wrapAround"],
             minPctOverlapDutyCycle=spParams["minPctOverlapDutyCycle"],
             dutyCyclePeriod=spParams["dutyCyclePeriod"],
-            # seed=spParams["seed"],
+            seed=spParams["seed"],
         )
         self.sp_info = Metrics(self.sp.getColumnDimensions(), 999999999)
 
@@ -209,7 +312,7 @@ class HtmcoreDetector(AnomalyDetector):
             predictedSegmentDecrement=tmParams["predictedSegmentDecrement"],
             maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
             maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"],
-            # seed=tmParams["seed"]
+            seed=tmParams["seed"]
         )
         self.tm_info = Metrics([self.tm.numberOfCells()], 999999999)
 
