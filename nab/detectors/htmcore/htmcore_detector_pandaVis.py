@@ -303,7 +303,7 @@ class HtmcoreDetector(AnomalyDetector):
           pass
 
       if PANDA_VIS_ENABLED:
-          self.PandaBlockExecution()
+          pandaServer.BlockExecution()
 
 
       return (anomalyScore, raw)
@@ -350,18 +350,6 @@ class HtmcoreDetector(AnomalyDetector):
       pandaServer.spatialPoolers["HTM1"] = self.sp
       pandaServer.temporalMemories["HTM1"] = self.tm
       pandaServer.NewStateDataReady()
-
-  def PandaBlockExecution(self):
-      if pandaServer.gotoIteration:
-          if pandaServer.gotoIteration_no <= self.iteration_:
-              pandaServer.gotoIteration = False
-
-      if not pandaServer.gotoIteration:
-          print("One step finished")
-          while not pandaServer.runInLoop and not pandaServer.runOneStep and not pandaServer.gotoIteration:
-              pass
-          pandaServer.runOneStep = False
-          print("Proceeding one step...")
 
 
 import pandas as pd
