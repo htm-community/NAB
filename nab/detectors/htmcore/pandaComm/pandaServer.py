@@ -59,10 +59,11 @@ def recv_one_message(sock):
 class PandaServer:
     def __init__(self):
         self.serverData = ServerData()
-        self.runOneStep = False
-        self.runInLoop = False
-        self.gotoIteration = False
-        self.gotoIteration_no = 0
+        self.cmdRunOneStep = False
+        self.cmdRunInLoop = False
+        self.cmdGotoIteration = False
+        self.gotoIteration = 0
+        self.currentIteration = 0
         self.newStateDataReadyForVis = False
         self.mainThreadQuitted = False
 
@@ -216,21 +217,21 @@ class PandaServer:
 
                         
                     elif rxData[0] == CLIENT_CMD.CMD_RUN:
-                        self.runInLoop = True
+                        self.cmdRunInLoop = True
                         printLog("RUN", verbosityHigh)
                     elif rxData[0] == CLIENT_CMD.CMD_STOP:
-                        self.runInLoop = False
+                        self.cmdRunInLoop = False
                         printLog("STOP", verbosityHigh)
                     elif rxData[0] == CLIENT_CMD.CMD_STEP_FWD:
-                        self.runOneStep = True
+                        self.cmdRunOneStep = True
                         printLog("STEP", verbosityHigh)
                     elif rxData[0] == CLIENT_CMD.CMD_GOTO:
-                        self.gotoIteration = True
-                        self.gotoIteration_no = rxData[1]
-                        printLog("GOTO:"+str(self.gotoIteration_no), verbosityHigh)
+                        self.cmdGotoIteration = True
+                        self.gotoIteration = rxData[1]
+                        printLog("GOTO:"+str(self.gotoIteration), verbosityHigh)
 
-                        if self.serverData.iterationNo >= self.gotoIteration_no: # handle when current iteration is above or equal requested
-                            self.gotoIteration = False
+                        if self.serverData.iterationNo >= self.gotoIteration: # handle when current iteration is above or equal requested
+                            self.cmdGotoIteration = False
 
                     elif rxData[0] == CLIENT_CMD.QUIT:
                         printLog("Client quitted!")
@@ -260,6 +261,18 @@ class PandaServer:
 
         printLog("Server quit")
         conn.close()
+
+    def BlockExecution(self):
+        if self.cmdGotoIteration:
+          if self.gotoIteration <= self.currentIteration:
+              self.cmdGotoIteration = False
+
+        if not self.cmdGotoIteration:
+            printLog("One step finished")
+            while not self.cmdRunInLoop and not self.cmdRunOneStep and not self.cmdGotoIteration:
+              pass
+            self.cmdRunOneStep = False
+            printLog("Proceeding one step...")
 
 def getPresynapticCellsForCell(tm, cellID):
     segments = tm.connections.segmentsForCell(cellID)

@@ -323,13 +323,14 @@ class HtmcoreDetector(AnomalyDetector):
 
 
   def PandaUpdateData(self, timestamp, value, encoding, activeColumns, predictiveCells):
-    # --------------------- VIS ------------------------------
+
+    pandaServer.currentIteration = self.iteration_ # update server's iteration number
     # do not update if we are running GOTO iteration command
-    if (not pandaServer.gotoIteration or (
-            pandaServer.gotoIteration and pandaServer.gotoIteration_no == self.iteration_)):
+    if (not pandaServer.cmdGotoIteration or (
+            pandaServer.cmdGotoIteration and pandaServer.gotoIteration == pandaServer.currentIteration)):
       # ------------------HTMpandaVis----------------------
       # fill up values
-      serverData.iterationNo = self.iteration_
+      serverData.iterationNo = pandaServer.currentIteration
       serverData.HTMObjects["HTM1"].inputs["Input"].stringValue = "INPUT:" + str(timestamp) + " " + str(value)
       serverData.HTMObjects["HTM1"].inputs["Input"].bits = encoding.sparse
       serverData.HTMObjects["HTM1"].inputs["Input"].count = encoding.size
