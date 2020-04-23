@@ -20,8 +20,9 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import os
+import json
 import math
-import datetime
 
 # htm.core imports
 from htm.bindings.sdr import SDR, Metrics
@@ -192,6 +193,20 @@ parameters_numenta_comparable = {
 }
 
 
+def get_params(filename):
+  """
+  Reads parameters from a json file
+  @param filename is a string defining the name of the file to read
+  @return dict of parameters
+  """
+  dirname = os.path.dirname(__file__)
+  filename = os.path.join(dirname, filename)
+  with open(filename) as json_file:
+    params = json.load(json_file)
+    return params
+
+
+
 class HtmcoreDetector(AnomalyDetector):
     """
   This detector uses an HTM based anomaly detection technique.
@@ -230,19 +245,23 @@ class HtmcoreDetector(AnomalyDetector):
         self.inputs_ = []
         self.iteration_ = 0
 
+
+
     def getAdditionalHeaders(self):
         """Returns a list of strings."""
         return ["raw_score"]  # TODO optional: add "prediction"
 
+
+
     def handleRecord(self, inputData):
-        """Returns a tuple (anomalyScore, rawScore).
-
-    @param inputData is a dict {"timestamp" : Timestamp(), "value" : float}
-
-    @return tuple (anomalyScore, <any other fields specified in `getAdditionalHeaders()`>, ...)
-    """
-        # Send it to Numenta detector and get back the results
+        """
+        Returns a tuple (anomalyScore, rawScore).
+        @param inputData is a dict {"timestamp" : Timestamp(), "value" : float}
+        @return tuple (anomalyScore, <any other fields specified in `getAdditionalHeaders()`>, ...)
+        """
+        # Send it to HTM model and get back the results
         return self.modelRun(inputData["timestamp"], inputData["value"])
+
 
     def initialize(self):
         # toggle parameters here
@@ -336,7 +355,7 @@ class HtmcoreDetector(AnomalyDetector):
          @params val - float input value
 
          @return rawAnomalyScore computed for the `val` in this step
-      """
+        """
         ## run data through our model pipeline: enc -> SP -> TM -> Anomaly
         self.inputs_.append(val)
         self.iteration_ += 1
