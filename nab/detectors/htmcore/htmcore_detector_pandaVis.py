@@ -261,7 +261,7 @@ class HtmcoreDetector(AnomalyDetector):
 
       self.tm_info.addData( self.tm.getActiveCells().flatten() )
 
-      self.PandaUpdateData(ts, val, encoding, activeColumns, predictiveCells)
+      self.PandaUpdateData(ts, val, valueBits, dateBits , activeColumns, predictiveCells)
 
       # 4.1 (optional) Predictor #TODO optional
       #TODO optional: also return an error metric on predictions (RMSE, R2,...)
@@ -312,17 +312,18 @@ class HtmcoreDetector(AnomalyDetector):
       global serverData
       serverData = ServerData()
       serverData.HTMObjects["HTM1"] = dataHTMObject()
-      serverData.HTMObjects["HTM1"].inputs["Input"] = dataInput()
+      serverData.HTMObjects["HTM1"].inputs["Value"] = dataInput()
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"] = dataInput()
 
       serverData.HTMObjects["HTM1"].layers["Layer1"] = dataLayer(
           modelParams["sp"]["columnCount"],
           modelParams["tm"]["cellsPerColumn"],
       )
-      serverData.HTMObjects["HTM1"].layers["Layer1"].proximalInputs = ["Input"]
+      serverData.HTMObjects["HTM1"].layers["Layer1"].proximalInputs = ["Value","TimeOfDay"]
       serverData.HTMObjects["HTM1"].layers["Layer1"].distalInputs = ["Layer1"]
 
 
-  def PandaUpdateData(self, timestamp, value, encoding, activeColumns, predictiveCells):
+  def PandaUpdateData(self, timestamp, value, valueSDR, datetimeSDR, activeColumns, predictiveCells):
 
     pandaServer.currentIteration = self.iteration_ # update server's iteration number
     # do not update if we are running GOTO iteration command
@@ -331,9 +332,13 @@ class HtmcoreDetector(AnomalyDetector):
       # ------------------HTMpandaVis----------------------
       # fill up values
       serverData.iterationNo = pandaServer.currentIteration
-      serverData.HTMObjects["HTM1"].inputs["Input"].stringValue = "INPUT:" + str(timestamp) + " " + str(value)
-      serverData.HTMObjects["HTM1"].inputs["Input"].bits = encoding.sparse
-      serverData.HTMObjects["HTM1"].inputs["Input"].count = encoding.size
+      serverData.HTMObjects["HTM1"].inputs["Value"].stringValue = "VALUE:" + str(value)
+      serverData.HTMObjects["HTM1"].inputs["Value"].bits = valueSDR.sparse
+      serverData.HTMObjects["HTM1"].inputs["Value"].count = valueSDR.size
+
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"].stringValue = "TIME OF DAY:" + str(timestamp)
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"].bits = datetimeSDR.sparse
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"].count = datetimeSDR.size
 
       serverData.HTMObjects["HTM1"].layers["Layer1"].activeColumns = activeColumns.sparse
 
