@@ -20,8 +20,9 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import os
+import json
 import math
-import datetime
 
 # htm.core imports
 from htm.bindings.sdr import SDR, Metrics
@@ -80,6 +81,20 @@ parameters_numenta_comparable = {
 }
 
 
+def get_params(filename):
+  """Reads parameters from a json file
+
+  @param filename is a string defining the name of the file to read
+
+  @return dict of parameters
+  """
+  dirname = os.path.dirname(__file__)
+  filename = os.path.join(dirname, filename)
+  with open(filename) as json_file:
+    params = json.load(json_file)
+    return params
+
+
 class HtmcoreDetector(AnomalyDetector):
   """
   This detector uses an HTM based anomaly detection technique.
@@ -98,6 +113,11 @@ class HtmcoreDetector(AnomalyDetector):
     self.useLikelihood      = True
     self.useSpatialAnomaly  = True
     self.verbose            = True
+
+    # Set this to true if you want to use the optimization.
+    # If true, it reads the parameters from ./params.json
+    # If false, it reads the parameters from ./best_params.json
+    self.use_optimization   = False
 
     ## internal members 
     # (listed here for easier understanding)
@@ -135,8 +155,10 @@ class HtmcoreDetector(AnomalyDetector):
 
   def initialize(self):
     # toggle parameters here
-    #parameters = default_parameters
-    parameters = parameters_numenta_comparable
+    if self.use_optimization:
+      parameters = get_params('params.json')
+    else:
+      parameters = parameters_numenta_comparable
 
     # setup spatial anomaly
     if self.useSpatialAnomaly:
