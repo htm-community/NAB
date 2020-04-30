@@ -40,7 +40,7 @@ from nab.detectors.base import AnomalyDetector
 # has been seen so far.
 SPATIAL_TOLERANCE = 0.05
 
-PANDA_VIS_ENABLED = False # if we want to run pandaVis tool
+PANDA_VIS_ENABLED = False # if we want to run pandaVis tool (repo at https://github.com/htm-community/HTMpandaVis )
 
 if PANDA_VIS_ENABLED:
     from PandaVis.pandaComm.server import PandaServer
@@ -251,13 +251,19 @@ class HtmcoreDetector(AnomalyDetector):
 
       # 3. Temporal Memory
       # Execute Temporal Memory algorithm over active mini-columns.
-      #self.tm.compute(activeColumns, learn=True)
 
-      self.tm.activateCells(activeColumns, learn=True)
-      # activateDendrites calculates active segments
-      self.tm.activateDendrites(learn=True)
-      # predictive cells are calculated directly from active segments
-      predictiveCells = self.tm.getPredictiveCells()
+      # the tm.compute() execute activateDendrites() - calculateAnomaly()/getPredictiveCells() - activateCells()
+      # but to get insight into system with visTool, we need to have different execution order
+      # Note: pandaVis retrieves synapses etc. by requesting data from sp/tm python objects, so data validity is crucial
+      if PANDA_VIS_ENABLED:
+        # activates cells in columns by TM algorithm (winners, bursting...)
+        self.tm.activateCells(activeColumns, learn=True)
+        # activateDendrites calculates active segments
+        self.tm.activateDendrites(learn=True)
+        # predictive cells are calculated directly from active segments
+        predictiveCells = self.tm.getPredictiveCells()
+      else:
+        self.tm.compute(activeColumns, learn=True)
 
       self.tm_info.addData( self.tm.getActiveCells().flatten() )
 
