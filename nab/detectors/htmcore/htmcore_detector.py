@@ -359,18 +359,21 @@ class HtmcoreDetector(AnomalyDetector):
       pandaServer.NewStateDataReady()
 
 
-import pandas as pd
-import os.path as path
-from nab.corpus import Corpus
-dataDir =  path.abspath(path.join(__file__ ,"../../../..","data"))
+# WHILE USING PANDAVIS
+# SPECIFY HERE FOR WHAT DATA YOU WANT TO RUN THIS DETECTOR
+if PANDA_VIS_ENABLED:
+  import pandas as pd
+  import os.path as path
+  from nab.corpus import Corpus
+  dataDir =  path.abspath(path.join(__file__ ,"../../../..","data"))
 
-corpus = Corpus(dataDir)
+  corpus = Corpus(dataDir)
 
-dataSet = corpus.dataFiles["artificialWithAnomaly/art_daily_flatmiddle.csv"]
+  dataSet = corpus.dataFiles["artificialWithAnomaly/art_daily_flatmiddle.csv"]
 
-detector = HtmcoreDetector(dataSet=dataSet,
-                probationaryPercent=0.15)
+  detector = HtmcoreDetector(dataSet=dataSet,
+                  probationaryPercent=0.15)
 
-detector.initialize()
+  detector.initialize()
 
-detector.run()
+  detector.run()
