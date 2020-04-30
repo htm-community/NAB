@@ -40,7 +40,7 @@ was a lack of developer activity in the upstream repo.
 - [x] additional community-provided detectors:
   - `htmcore`: currently the only HTM implementation able to run in NAB natively in python 3. (with many improvements in [Community HTM implementation, successor of nupic.core](https://github.com/htm-community/htm.core/).
   - `numenta`, `numenta_TM` detectors (original from Numenta) made compatible with the Py3 codebase (only requires Py2 installed)
-- [x] the HTM visualization tool [HTMPandaVis](https://github.com/htm-community/HTMpandaVis) could e used with htm_core_detector (set PANDA_VIS_ENABLED flag to True)
+- [x] the HTM visualization tool [HTMPandaVis](https://github.com/htm-community/HTMpandaVis) could be used with htm_core_detector (set PANDA_VIS_ENABLED flag to True)
 - [ ] additional datasets
   - TBD, none so far
 
