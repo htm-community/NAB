@@ -349,7 +349,6 @@ class HtmcoreDetector(AnomalyDetector):
           modelParams["tm"]["cellsPerColumn"],
       )
       serverData.HTMObjects["HTM1"].layers["Layer1"].proximalInputs = ["Value","TimeOfDay"]
-      serverData.HTMObjects["HTM1"].layers["Layer1"].distalInputs = ["Layer1"]
 
 
   def PandaUpdateData(self, timestamp, value, valueSDR, datetimeSDR, activeColumns, predictiveCells):
