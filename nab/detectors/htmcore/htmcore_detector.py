@@ -42,6 +42,7 @@ from nab.detectors.base import AnomalyDetector
 SPATIAL_TOLERANCE = 0.05
 
 PANDA_VIS_ENABLED = False # if we want to run pandaVis tool (repo at https://github.com/htm-community/HTMpandaVis )
+# **if true, run this file as standalone script, see end of file for input file**
 
 if PANDA_VIS_ENABLED:
     from PandaVis.pandaComm.server import PandaServer
@@ -147,6 +148,7 @@ class HtmcoreDetector(AnomalyDetector):
     if PANDA_VIS_ENABLED:
         pandaServer.Start()
         self.BuildPandaSystem(parameters_numenta_comparable)
+        self.firstStep = True
 
 
   def getAdditionalHeaders(self):
@@ -278,19 +280,19 @@ class HtmcoreDetector(AnomalyDetector):
       # but to get insight into system with visTool, we need to have different execution order
       # Note: pandaVis retrieves synapses etc. by requesting data from sp/tm python objects, so data validity is crucial
       if PANDA_VIS_ENABLED:
+        if self.firstStep:
+            self.firstStep = False
+            # activateDendrites calculates active segments - only for first time step here
+            self.tm.activateDendrites(learn=True)
+
         # activates cells in columns by TM algorithm (winners, bursting...)
         self.tm.activateCells(activeColumns, learn=True)
-        # activateDendrites calculates active segments
-        self.tm.activateDendrites(learn=True)
-        # predictive cells are calculated directly from active segments
-        predictiveCells = self.tm.getPredictiveCells()
+
       else:
         self.tm.compute(activeColumns, learn=True)
 
       self.tm_info.addData( self.tm.getActiveCells().flatten() )
 
-      if PANDA_VIS_ENABLED:
-        self.PandaUpdateData(ts, val, valueBits, dateBits , activeColumns, predictiveCells)
 
       # 4.1 (optional) Predictor #TODO optional
       #TODO optional: also return an error metric on predictions (RMSE, R2,...)
@@ -332,6 +334,12 @@ class HtmcoreDetector(AnomalyDetector):
           pass
 
       if PANDA_VIS_ENABLED:
+          # activateDendrites calculates active segments
+          self.tm.activateDendrites(learn=True)
+          # predictive cells are calculated directly from active segments
+          predictiveCells = self.tm.getPredictiveCells()
+
+          self.PandaUpdateData(ts, val, valueBits, dateBits, activeColumns, predictiveCells)
           pandaServer.BlockExecution()
 
 
