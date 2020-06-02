@@ -40,6 +40,7 @@ was a lack of developer activity in the upstream repo.
 - [x] additional community-provided detectors:
   - `htmcore`: currently the only HTM implementation able to run in NAB natively in python 3. (with many improvements in [Community HTM implementation, successor of nupic.core](https://github.com/htm-community/htm.core/).
   - `numenta`, `numenta_TM` detectors (original from Numenta) made compatible with the Py3 codebase (only requires Py2 installed)
+- [x] the HTM visualization tool [HTMPandaVis](https://github.com/htm-community/HTMpandaVis) could be used with htm_core_detector (set PANDA_VIS_ENABLED flag to True)
 - [ ] additional datasets
   - TBD, none so far
 
@@ -259,3 +260,17 @@ This will run the `detect` phase of NAB on the data files specified in the above
 JSON file. Note that scoring and normalization are not supported with this
 option. Note also that you may see warning messages regarding the lack of labels
 for other files. You can ignore these warnings.
+
+##### Parameter Optimization on NAB
+
+You can run parameter optimization using your own framework or the framework provided by [htm.core](https://github.com/htm-community/htm.core). As of now, this is only enabled for the htm.core detector, but the same can be done for any detector with low effort (see #792 for details).
+**Requirements**
++ Docker Desktop
++ `pip install docker`
+
+**Usage**
+1. Set `use_optimization = True` in the htm.core detector settings.
+2. Build a docker image from the Dockerfile provided in this repo with `docker build -t optimize-htmcore-nab:latest . -f htmcore.Dockerfile`
+3. Then:
+    + Option A: Check `optimize_bayesopt.py` for an example on how to run with Bayesian Optimization. Note: The script requires `pip install bayesian-optimization`.
+    + Option B: Check `optimize_swarm.py` for an example on how to run the htm.core optimization framework. You can execute the script using the optimization framework with e.g. `python -m htm.optimization.ae -n 3 --memory_limit 4 -v --swarming 100 optimize_anomaly_swarm.py`. Note for MacOS users: You need to `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` before running the script. 

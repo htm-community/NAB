@@ -20,8 +20,9 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import os
+import json
 import math
-import datetime
 
 # htm.core imports
 from htm.bindings.sdr import SDR, Metrics
@@ -39,6 +40,14 @@ from nab.detectors.base import AnomalyDetector
 # accounts for the human labelling bias for spatial values larger than what
 # has been seen so far.
 SPATIAL_TOLERANCE = 0.05
+
+PANDA_VIS_ENABLED = False # if we want to run pandaVis tool (repo at https://github.com/htm-community/HTMpandaVis )
+
+if PANDA_VIS_ENABLED:
+    from PandaVis.pandaComm.server import PandaServer
+    from PandaVis.pandaComm.dataExchange import ServerData, dataHTMObject, dataLayer, dataInput
+
+    pandaServer = PandaServer()
 
 parameters_numenta_comparable = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
@@ -80,6 +89,20 @@ parameters_numenta_comparable = {
 }
 
 
+def get_params(filename):
+  """Reads parameters from a json file
+
+  @param filename is a string defining the name of the file to read
+
+  @return dict of parameters
+  """
+  dirname = os.path.dirname(__file__)
+  filename = os.path.join(dirname, filename)
+  with open(filename) as json_file:
+    params = json.load(json_file)
+    return params
+
+
 class HtmcoreDetector(AnomalyDetector):
   """
   This detector uses an HTM based anomaly detection technique.
@@ -99,6 +122,11 @@ class HtmcoreDetector(AnomalyDetector):
     self.useSpatialAnomaly  = True
     self.verbose            = True
 
+    # Set this to true if you want to use the optimization.
+    # If true, it reads the parameters from ./params.json
+    # If false, it reads the parameters from ./best_params.json
+    self.use_optimization   = False
+
     ## internal members 
     # (listed here for easier understanding)
     # initialized in `initialize()`
@@ -114,6 +142,11 @@ class HtmcoreDetector(AnomalyDetector):
     # internal helper variables:
     self.inputs_ = []
     self.iteration_ = 0
+
+    # initialize pandaVis server
+    if PANDA_VIS_ENABLED:
+        pandaServer.Start()
+        self.BuildPandaSystem(parameters_numenta_comparable)
 
 
   def getAdditionalHeaders(self):
@@ -135,8 +168,10 @@ class HtmcoreDetector(AnomalyDetector):
 
   def initialize(self):
     # toggle parameters here
-    #parameters = default_parameters
-    parameters = parameters_numenta_comparable
+    if self.use_optimization:
+      parameters = get_params('params.json')
+    else:
+      parameters = parameters_numenta_comparable
 
     # setup spatial anomaly
     if self.useSpatialAnomaly:
@@ -238,8 +273,24 @@ class HtmcoreDetector(AnomalyDetector):
 
       # 3. Temporal Memory
       # Execute Temporal Memory algorithm over active mini-columns.
-      self.tm.compute(activeColumns, learn=True)
+
+      # the tm.compute() execute activateDendrites() - calculateAnomaly()/getPredictiveCells() - activateCells()
+      # but to get insight into system with visTool, we need to have different execution order
+      # Note: pandaVis retrieves synapses etc. by requesting data from sp/tm python objects, so data validity is crucial
+      if PANDA_VIS_ENABLED:
+        # activates cells in columns by TM algorithm (winners, bursting...)
+        self.tm.activateCells(activeColumns, learn=True)
+        # activateDendrites calculates active segments
+        self.tm.activateDendrites(learn=True)
+        # predictive cells are calculated directly from active segments
+        predictiveCells = self.tm.getPredictiveCells()
+      else:
+        self.tm.compute(activeColumns, learn=True)
+
       self.tm_info.addData( self.tm.getActiveCells().flatten() )
+
+      if PANDA_VIS_ENABLED:
+        self.PandaUpdateData(ts, val, valueBits, dateBits , activeColumns, predictiveCells)
 
       # 4.1 (optional) Predictor #TODO optional
       #TODO optional: also return an error metric on predictions (RMSE, R2,...)
@@ -280,4 +331,77 @@ class HtmcoreDetector(AnomalyDetector):
           # print(self.tm_info)
           pass
 
+      if PANDA_VIS_ENABLED:
+          pandaServer.BlockExecution()
+
+
       return (anomalyScore, raw)
+
+  def BuildPandaSystem(self,modelParams):
+      global serverData
+      serverData = ServerData()
+      serverData.HTMObjects["HTM1"] = dataHTMObject()
+      serverData.HTMObjects["HTM1"].inputs["Value"] = dataInput()
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"] = dataInput()
+
+      serverData.HTMObjects["HTM1"].layers["Layer1"] = dataLayer(
+          modelParams["sp"]["columnCount"],
+          modelParams["tm"]["cellsPerColumn"],
+      )
+      serverData.HTMObjects["HTM1"].layers["Layer1"].proximalInputs = ["Value","TimeOfDay"]
+      serverData.HTMObjects["HTM1"].layers["Layer1"].distalInputs = ["Layer1"]
+
+
+  def PandaUpdateData(self, timestamp, value, valueSDR, datetimeSDR, activeColumns, predictiveCells):
+
+    pandaServer.currentIteration = self.iteration_ # update server's iteration number
+    # do not update if we are running GOTO iteration command
+    if (not pandaServer.cmdGotoIteration or (
+            pandaServer.cmdGotoIteration and pandaServer.gotoIteration == pandaServer.currentIteration)):
+      # ------------------HTMpandaVis----------------------
+      # fill up values
+      serverData.iterationNo = pandaServer.currentIteration
+      serverData.HTMObjects["HTM1"].inputs["Value"].stringValue = "VALUE:" + str(value)
+      serverData.HTMObjects["HTM1"].inputs["Value"].bits = valueSDR.sparse
+      serverData.HTMObjects["HTM1"].inputs["Value"].count = valueSDR.size
+
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"].stringValue = "TIME OF DAY:" + str(timestamp)
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"].bits = datetimeSDR.sparse
+      serverData.HTMObjects["HTM1"].inputs["TimeOfDay"].count = datetimeSDR.size
+
+      serverData.HTMObjects["HTM1"].layers["Layer1"].activeColumns = activeColumns.sparse
+
+      serverData.HTMObjects["HTM1"].layers["Layer1"].winnerCells = self.tm.getWinnerCells().sparse
+      serverData.HTMObjects["HTM1"].layers["Layer1"].activeCells = self.tm.getActiveCells().sparse
+      serverData.HTMObjects["HTM1"].layers["Layer1"].predictiveCells = predictiveCells.sparse
+
+      # print("ACTIVECOLS:"+str(serverData.HTMObjects["HTM1"].layers["SensoryLayer"].activeColumns ))
+      # print("WINNERCELLS:"+str(serverData.HTMObjects["HTM1"].layers["SensoryLayer"].winnerCells))
+      # print("ACTIVECELLS:" + str(serverData.HTMObjects["HTM1"].layers["SensoryLayer"].activeCells))
+      # print("PREDICTCELLS:"+str(serverData.HTMObjects["HTM1"].layers["SensoryLayer"].predictiveCells))
+
+      pandaServer.serverData = serverData
+
+      pandaServer.spatialPoolers["HTM1"] = self.sp
+      pandaServer.temporalMemories["HTM1"] = self.tm
+      pandaServer.NewStateDataReady()
+
+
+# WHILE USING PANDAVIS
+# SPECIFY HERE FOR WHAT DATA YOU WANT TO RUN THIS DETECTOR
+if PANDA_VIS_ENABLED:
+  import pandas as pd
+  import os.path as path
+  from nab.corpus import Corpus
+  dataDir =  path.abspath(path.join(__file__ ,"../../../..","data"))
+
+  corpus = Corpus(dataDir)
+
+  dataSet = corpus.dataFiles["artificialWithAnomaly/art_daily_flatmiddle.csv"]
+
+  detector = HtmcoreDetector(dataSet=dataSet,
+                  probationaryPercent=0.15)
+
+  detector.initialize()
+
+  detector.run()
