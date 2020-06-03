@@ -121,10 +121,3 @@ if __name__ == "__main__":
     os.system('/bin/bash ./install_py2_detectors.sh')
   except:
     print("Unable to install python2 dependencies: numenta, numentaTM, htmjava detectors not available!")
-    
-  # install community HTM htm.core
-  try: 
-    import os
-    os.system('python nab/detectors/htmcore/setup.py install')
-  except:
-    print("Failed to install htm.core detector!")
