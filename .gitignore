@@ -21,3 +21,8 @@ pyenv2/
 build/
 dist/
 htm.core/
+
+#panda Vis generated files
+nab/detectors/htmcore/bakedDatabase/*.db
+nab/detectors/htmcore/bakedDatabase/*/*.dump
+nab/detectors/htmcore/logs/*.log
