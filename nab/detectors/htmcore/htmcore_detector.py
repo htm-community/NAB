@@ -329,6 +329,7 @@ class HtmcoreDetector(AnomalyDetector):
       # 6. panda vis
       if PANDA_VIS_BAKE_DATA:
           # ------------------HTMpandaVis----------------------
+          # see more about this structure at https://github.com/htm-community/HTMpandaVis/blob/master/pandaBaker/README.md
           # fill up values
           pandaBaker.inputs["Value"].stringValue = "value: {:.2f}".format(val)
           pandaBaker.inputs["Value"].bits = valueBits.sparse
