@@ -195,6 +195,20 @@
             "threshold": 0.8031250000000002
         }
     },
+    "spatial": {
+        "reward_low_FN_rate": {
+            "score": -49.075560097418595,
+            "threshold": 1.0
+        },
+        "reward_low_FP_rate": {
+            "score": -0.12559751317562018,
+            "threshold": 1.0
+        },
+        "standard": {
+            "score": 1.9244399025814047,
+            "threshold": 1.0
+        }
+    },
     "twitterADVec": {
         "reward_low_FN_rate": {
             "score": -30.63914483,

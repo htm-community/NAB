@@ -64,6 +64,11 @@
         "reward_low_FP_rate": 27.08121005969828,
         "standard": 35.687043255862065
     },
+    "spatial": {
+        "reward_low_FN_rate": 52.56449422487971,
+        "reward_low_FP_rate": 49.94586314087259,
+        "standard": 50.82949995800923
+    },
     "twitterADVec": {
         "reward_low_FN_rate": 53.50107495100574,
         "reward_low_FP_rate": 33.610051641206894,
