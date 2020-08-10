@@ -1,10 +1,15 @@
+"""
+This is the same simple threshold detector that Numenta uses in their NuPIC-based detector implementation.
+Hence, this file is for demonstrating how "powerful" it is on NAB.
+"""
+
 from nab.detectors.base import AnomalyDetector
 
 SPATIAL_TOLERANCE = 0.05
 
-class SpatialDetector(AnomalyDetector):
+class ThresholdDetector(AnomalyDetector):
     def __init__(self, *args, **kwargs):
-        super(SpatialDetector, self).__init__(*args, **kwargs)
+        super(ThresholdDetector, self).__init__(*args, **kwargs)
 
         self.minVal = None
         self.maxVal = None

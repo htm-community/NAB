@@ -229,8 +229,8 @@ if __name__ == "__main__":
     from nab.detectors.earthgecko_skyline.earthgecko_skyline_detector import EarthgeckoSkylineDetector
   if "htmcore" in args.detectors:
     from nab.detectors.htmcore.htmcore_detector import HtmcoreDetector
-  if "spatial" in args.detectors:
-    from nab.detectors.spatial.spatial_detector import SpatialDetector
+  if "threshold" in args.detectors:
+    from nab.detectors.threshold.threshold_detector import ThresholdDetector
 
   # Special hacks for detectors requiring Python 2:
   # TODO the imports are failing, remove? Py2 detectors have special treatment in `getDetectorClassConstructors()` above

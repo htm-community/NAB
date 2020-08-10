@@ -64,7 +64,7 @@
         "reward_low_FP_rate": 27.08121005969828,
         "standard": 35.687043255862065
     },
-    "spatial": {
+    "threshold": {
         "reward_low_FN_rate": 52.56449422487971,
         "reward_low_FP_rate": 49.94586314087259,
         "standard": 50.82949995800923

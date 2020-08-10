@@ -195,7 +195,7 @@
             "threshold": 0.8031250000000002
         }
     },
-    "spatial": {
+    "threshold": {
         "reward_low_FN_rate": {
             "score": -49.075560097418595,
             "threshold": 1.0
