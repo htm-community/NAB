@@ -7,7 +7,7 @@ This directory contains some useful utility functions.
 ---
 ##### Plotting data and results using Jupyter notebook
 
- * Intstall Jupyter,pandas,numpy,plotly if not installed for python 2.7
+ * Intstall Jupyter,pandas,numpy,plotly if not installed: 
 
 ``` 
 python -m pip install jupyter
@@ -18,11 +18,10 @@ python -m pip install plotly
 
  * Run Jupyter notebook in **scripts** directory
  ```
+ cd scripts/
  jupyter notebook
  ```
-* Use `"Plot Data.ipynb"` template notebook to plot data from `../data` folder
-
-* User `"Plot Result - numenta.ipynb"` temlplate to plot results from `../results` folder
+* Use file `"Plot.ipynb"` template to plot results from `../results` folder, and data from `../data/` folder.
 
  ---
 ##### Plotting results
