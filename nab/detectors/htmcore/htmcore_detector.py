@@ -26,7 +26,7 @@ import math
 
 # htm.core imports
 from htm.bindings.sdr import SDR, Metrics
-from htm.encoders.rdse import RDSE, RDSE_Parameters
+from htm.encoders.rdse import RDSE as Encoder, RDSE_Parameters as EncParameters
 from htm.encoders.date import DateEncoder
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
@@ -35,67 +35,168 @@ from htm.bindings.algorithms import Predictor
 
 from nab.detectors.base import AnomalyDetector
 
-# Fraction outside of the range of values seen so far that will be considered
-# a spatial anomaly regardless of the anomaly likelihood calculation. This
-# accounts for the human labelling bias for spatial values larger than what
-# has been seen so far.
-SPATIAL_TOLERANCE = 0.05
 
-PANDA_VIS_BAKE_DATA = False # if we want to bake data for pandaVis tool (repo at https://github.com/htm-community/HTMpandaVis )
+parameters_best_localAreaDensity = {
+    'anomaly': {
+        'likelihood': {
+            'probationaryPct': 0.09361038526767583,
+            'reestimationPeriod': 93
+        }
+    },
+    'enc': {
+        'time': {
+            'timeOfDay': (19, 9.862972978884644)
+        },
+        'value': {
+            'activeBits': 23,
+            'size': 367,
+            'seed': 5,
+        }
+    },
+    'sp': {
+        'boostStrength': 0.0,
+        "wrapAround": True,
+        'columnDimensions': 2171,
+        'dutyCyclePeriod': 943,
+        'localAreaDensity': 0.02733832231380256,
+        'numActiveColumnsPerInhArea': 0,
+        'minPctOverlapDutyCycle': 0.001040083435774549,
+        'potentialPct': 0.7478919367674115,
+        "globalInhibition": True,
+        'stimulusThreshold': 0,
+        'synPermActiveInc': 0.0032112342797752484,
+        'synPermConnected': 0.19592033087796534,
+        'synPermInactiveDec': 0.000530091821888105,
+        'seed': 5,
+    },
+    'spatial_tolerance': 0.050687542110463626,
+    'tm': {
+        'activationThreshold': 21,
+        'cellsPerColumn': 32,
+        'connectedPermanence': 0.5209199947449604,
+        'initialPermanence': 0.23475728280908847,
+        'maxNewSynapseCount': 33,
+        'maxSegmentsPerCell': 116,
+        'maxSynapsesPerSegment': 126,
+        'minThreshold': 14,
+        'permanenceDecrement': 0.007442196498047676,
+        'permanenceIncrement': 0.042228304892119754,
+        'predictedSegmentDecrement': 0.0009738201927211279,
+        'seed': 5,
+    }
+}
 
-if PANDA_VIS_BAKE_DATA:
-    from pandaBaker.pandaBaker import PandaBaker
-    from pandaBaker.pandaBaker import cLayer, cInput, cDataStream
 
-    BAKE_DATABASE_FILE_PATH = os.path.join(os.getcwd(), 'bakedDatabase', 'htmcore_detector.db')
+parameters_best_numActiveColumnsPerInhArea = {
+    'anomaly': {
+        'likelihood': {
+            'probationaryPct': 0.10793172183908652,
+            'reestimationPeriod': 72
+        }
+    },
+    'enc': {
+        'time': {
+            'timeOfDay': (21, 6.456740123240503)
+        },
+        'value': {
+            'activeBits': 23,
+            'size': 400,
+            'seed': 5,
+        }
+    },
+    'sp': {
+        'boostStrength': 0.0,
+        "wrapAround": True,
+        'columnDimensions': 1487,
+        'dutyCyclePeriod': 1017,
+        'minPctOverlapDutyCycle': 0.0009087943213583929,
+        'localAreaDensity': 0,
+        'numActiveColumnsPerInhArea': 40,
+        'potentialPct': 0.9281708146689587,
+        "globalInhibition": True,
+        'stimulusThreshold': 0,
+        'synPermActiveInc': 0.003892649892638879,
+        'synPermConnected': 0.22110323252238637,
+        'synPermInactiveDec': 0.0006151856346474387,
+        'seed': 5,
+    },
+    'spatial_tolerance': 0.04115653095415344,
+    'tm': {
+        'activationThreshold': 14,
+        'cellsPerColumn': 32,
+        'connectedPermanence': 0.43392460530288607,
+        'initialPermanence': 0.2396689292225759,
+        'maxNewSynapseCount': 27,
+        'maxSegmentsPerCell': 161,
+        'maxSynapsesPerSegment': 141,
+        'minThreshold': 13,
+        'permanenceDecrement': 0.008404653537413292,
+        'permanenceIncrement': 0.046393736556088694,
+        'predictedSegmentDecrement': 0.0009973866301803873,
+        'seed': 5,
+    }
+}
 
-    pandaBaker = PandaBaker(BAKE_DATABASE_FILE_PATH)
 
 parameters_numenta_comparable = {
-  # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
-  'enc': {
-    "value" : # RDSE for value
-      {'resolution': 0.001,
-        'size': 4000,
-        'sparsity': 0.10
-      },
-    "time": {  # DateTime for timestamps
-        'timeOfDay': (21, 9.49), 
-        'weekend': 0 #21 TODO try impact of weekend
-        }},
-  'predictor': {'sdrc_alpha': 0.1},
-  'sp': {
-    'boostStrength': 0.0,
-    'columnCount': 2048,
-    'localAreaDensity': 40/2048,
-    'potentialPct': 0.4,
-    'synPermActiveInc': 0.003,
-    'synPermConnected': 0.2,
-    'synPermInactiveDec': 0.0005},
-  'tm': {
-    'activationThreshold': 13,
-    'cellsPerColumn': 32,
-    'initialPerm': 0.21,
-    'maxSegmentsPerCell': 128,
-    'maxSynapsesPerSegment': 32,
-    'minThreshold': 10,
-    'newSynapseCount': 20,
-    'permanenceDec': 0.1,
-    'permanenceInc': 0.1},
-  'anomaly': {
-    'likelihood': {
-      #'learningPeriod': int(math.floor(self.probationaryPeriod / 2.0)),
-      #'probationaryPeriod': self.probationaryPeriod-default_parameters["anomaly"]["likelihood"]["learningPeriod"],
-      'probationaryPct': 0.1,
-      'reestimationPeriod': 100}}
+    "enc": {
+        "value": {
+            # "resolution": 0.9, calculate by max(0.001, (maxVal - minVal) / numBuckets) where numBuckets = 130
+            "size": 400,
+            "activeBits": 21,  # results very sensitive to the size/active bits in the input encoders
+            "seed": 5,
+        },
+        "time": {
+            "timeOfDay": (21, 9.49),
+        }
+    },
+    "sp": {
+        # inputDimensions: use width of encoding
+        "columnDimensions": 2048,
+        # "potentialRadius": use width of encoding
+        "potentialPct": 0.8,
+        "globalInhibition": True,
+        "localAreaDensity": 0,  ## MUTEX #0.025049634479368352,  # optimize this one
+        "numActiveColumnsPerInhArea": 40,  ##MUTEX
+        "stimulusThreshold": 0,
+        "synPermInactiveDec": 0.0005,
+        "synPermActiveInc": 0.003,
+        "synPermConnected": 0.2,  # this shouldn't make any effect, keep as intended by Connections
+        "boostStrength": 0.0,  # so far, boosting negatively affects results. Suggest leaving OFF (0.0)
+        "wrapAround": True,
+        "minPctOverlapDutyCycle": 0.001,
+        "dutyCyclePeriod": 1000,
+        "seed": 5,
+    },
+    "tm": {
+        # "columnDimensions": 2048, #must match SP
+        "cellsPerColumn": 32,
+        "activationThreshold": 20,
+        "initialPermanence": 0.24,
+        "connectedPermanence": 0.5,
+        "minThreshold": 13,
+        "maxNewSynapseCount": 31,
+        "permanenceIncrement": 0.04,
+        "permanenceDecrement": 0.008,
+        "predictedSegmentDecrement": 0.001,
+        "maxSegmentsPerCell": 128,
+        "maxSynapsesPerSegment": 128,
+        "seed": 5,
+    },
+    "spatial_tolerance": 0.05,
+    "anomaly": {
+        "likelihood": {
+            "probationaryPct": 0.1,
+            "reestimationPeriod": 100
+        }
+    }
 }
 
 
 def get_params(filename):
-  """Reads parameters from a json file
-
+  """
+  Reads parameters from a json file
   @param filename is a string defining the name of the file to read
-
   @return dict of parameters
   """
   dirname = os.path.dirname(__file__)
@@ -105,310 +206,218 @@ def get_params(filename):
     return params
 
 
+
 class HtmcoreDetector(AnomalyDetector):
-  """
+    """
   This detector uses an HTM based anomaly detection technique.
   """
 
-  def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
-    super(HtmcoreDetector, self).__init__(*args, **kwargs)
+        super(HtmcoreDetector, self).__init__(*args, **kwargs)
 
-    ## API for controlling settings of htm.core HTM detector:
+        ## API for controlling settings of htm.core HTM detector:
 
-    # Set this to False if you want to get results based on raw scores
-    # without using AnomalyLikelihood. This will give worse results, but
-    # useful for checking the efficacy of AnomalyLikelihood. You will need
-    # to re-optimize the thresholds when running with this setting.
-    self.useLikelihood      = True
-    self.useSpatialAnomaly  = True
-    self.verbose            = True
+        # Set this to False if you want to get results based on raw scores
+        # without using AnomalyLikelihood. This will give worse results, but
+        # useful for checking the efficacy of AnomalyLikelihood. You will need
+        # to re-optimize the thresholds when running with this setting.
+        self.useLikelihood = True
+        self.useSpatialAnomaly = False
+        self.verbose = True
 
-    # Set this to true if you want to use the optimization.
-    # If true, it reads the parameters from ./params.json
-    # If false, it reads the parameters from ./best_params.json
-    self.use_optimization   = False
-
-    ## internal members 
-    # (listed here for easier understanding)
-    # initialized in `initialize()`
-    self.encTimestamp   = None
-    self.encValue       = None
-    self.sp             = None
-    self.tm             = None
-    self.anLike         = None
-    # optional debug info
-    self.enc_info       = None
-    self.sp_info        = None
-    self.tm_info        = None
-    # internal helper variables:
-    self.inputs_ = []
-    self.iteration_ = 0
-
-
-  def getAdditionalHeaders(self):
-    """Returns a list of strings."""
-    return ["raw_score"] #TODO optional: add "prediction"
-
-
-  def handleRecord(self, inputData):
-    """Returns a tuple (anomalyScore, rawScore).
-
-    @param inputData is a dict {"timestamp" : Timestamp(), "value" : float}
-
-    @return tuple (anomalyScore, <any other fields specified in `getAdditionalHeaders()`>, ...)
-    """
-    # Send it to Numenta detector and get back the results
-    return self.modelRun(inputData["timestamp"], inputData["value"]) 
+        ## internal members
+        # (listed here for easier understanding)
+        # initialized in `initialize()`
+        self.spatial_tolerance = None
+        self.minVal = None  # Keep track of value range for spatial anomaly detection
+        self.maxVal = None  # Keep track of value range for spatial anomaly detection
+        self.encTimestamp = None
+        self.encValue = None
+        self.sp = None
+        self.tm = None
+        self.anLike = None
+        # optional debug info
+        self.enc_info = None
+        self.sp_info = None
+        self.tm_info = None
+        # internal helper variables:
+        self.inputs_ = []
+        self.iteration_ = 0
 
 
 
-  def initialize(self):
-    # toggle parameters here
-    if self.use_optimization:
-      parameters = get_params('params.json')
-    else:
-      parameters = parameters_numenta_comparable
+    def getAdditionalHeaders(self):
+        """Returns a list of strings."""
+        return ["raw_score"]  # TODO optional: add "prediction"
 
-    # setup spatial anomaly
-    if self.useSpatialAnomaly:
-      # Keep track of value range for spatial anomaly detection
-      self.minVal = None
-      self.maxVal = None
 
-    ## setup Enc, SP, TM, Likelihood
-    # Make the Encoders.  These will convert input data into binary representations.
-    self.encTimestamp = DateEncoder(timeOfDay= parameters["enc"]["time"]["timeOfDay"],
-                                    weekend  = parameters["enc"]["time"]["weekend"])
 
-    scalarEncoderParams            = RDSE_Parameters()
-    scalarEncoderParams.size       = parameters["enc"]["value"]["size"]
-    scalarEncoderParams.sparsity   = parameters["enc"]["value"]["sparsity"]
-    scalarEncoderParams.resolution = parameters["enc"]["value"]["resolution"]
+    def handleRecord(self, inputData):
+        """
+        Returns a tuple (anomalyScore, rawScore).
+        @param inputData is a dict {"timestamp" : Timestamp(), "value" : float}
+        @return tuple (anomalyScore, <any other fields specified in `getAdditionalHeaders()`>, ...)
+        """
+        # Send it to HTM model and get back the results
+        return self.modelRun(inputData["timestamp"], inputData["value"])
 
-    self.encValue = RDSE( scalarEncoderParams )
-    encodingWidth = (self.encTimestamp.size + self.encValue.size)
-    self.enc_info = Metrics( [encodingWidth], 999999999 )
 
-    # Make the HTM.  SpatialPooler & TemporalMemory & associated tools.
-    # SpatialPooler
-    spParams = parameters["sp"]
-    self.sp = SpatialPooler(
-      inputDimensions            = (encodingWidth,),
-      columnDimensions           = (spParams["columnCount"],),
-      potentialPct               = spParams["potentialPct"],
-      potentialRadius            = encodingWidth,
-      globalInhibition           = True,
-      localAreaDensity           = spParams["localAreaDensity"],
-      synPermInactiveDec         = spParams["synPermInactiveDec"],
-      synPermActiveInc           = spParams["synPermActiveInc"],
-      synPermConnected           = spParams["synPermConnected"],
-      boostStrength              = spParams["boostStrength"],
-      wrapAround                 = True
-    )
-    self.sp_info = Metrics( self.sp.getColumnDimensions(), 999999999 )
+    def initialize(self):
+        # toggle parameters here
+        # parameters = default_parameters
+        parameters = parameters_best_numActiveColumnsPerInhArea
 
-    # TemporalMemory
-    tmParams = parameters["tm"]
-    self.tm = TemporalMemory(
-      columnDimensions          = (spParams["columnCount"],),
-      cellsPerColumn            = tmParams["cellsPerColumn"],
-      activationThreshold       = tmParams["activationThreshold"],
-      initialPermanence         = tmParams["initialPerm"],
-      connectedPermanence       = spParams["synPermConnected"],
-      minThreshold              = tmParams["minThreshold"],
-      maxNewSynapseCount        = tmParams["newSynapseCount"],
-      permanenceIncrement       = tmParams["permanenceInc"],
-      permanenceDecrement       = tmParams["permanenceDec"],
-      predictedSegmentDecrement = 0.0,
-      maxSegmentsPerCell        = tmParams["maxSegmentsPerCell"],
-      maxSynapsesPerSegment     = tmParams["maxSynapsesPerSegment"]
-    )
-    self.tm_info = Metrics( [self.tm.numberOfCells()], 999999999 )
+        # setup spatial anomaly
+        if self.useSpatialAnomaly:
+            self.spatial_tolerance = parameters.get("spatial_tolerance")
+            if self.spatial_tolerance is None:
+                self.spatial_tolerance = 0.05
+            self.minVal = None
+            self.maxVal = None
 
-    # setup likelihood, these settings are used in NAB
-    if self.useLikelihood:
-      anParams = parameters["anomaly"]["likelihood"]
-      learningPeriod     = int(math.floor(self.probationaryPeriod / 2.0))
-      self.anomalyLikelihood = AnomalyLikelihood(
-                                 learningPeriod= learningPeriod,
-                                 estimationSamples= self.probationaryPeriod - learningPeriod,
-                                 reestimationPeriod= anParams["reestimationPeriod"])
-    # Predictor
-    # self.predictor = Predictor( steps=[1, 5], alpha=parameters["predictor"]['sdrc_alpha'] )
-    # predictor_resolution = 1
 
-    # initialize pandaBaker
-    if PANDA_VIS_BAKE_DATA:
-      self.BuildPandaSystem(self.sp, self.tm, parameters["enc"]["value"]["size"], self.encTimestamp.size)
+        ## setup Enc, SP, TM, Likelihood
+        # Make the Encoders.  These will convert input data into binary representations.
+        self.encTimestamp = DateEncoder(timeOfDay=parameters["enc"]["time"]["timeOfDay"])
 
-  def modelRun(self, ts, val):
-      """
+        scalarEncoderParams = EncParameters()
+        scalarEncoderParams.size = parameters["enc"]["value"]["size"]
+        scalarEncoderParams.activeBits = parameters["enc"]["value"]["activeBits"]
+        # scalarEncoderParams.resolution = parameters["enc"]["value"]["resolution"]
+        scalarEncoderParams.resolution = max(0.001, (self.inputMax - self.inputMin) / 130)
+        scalarEncoderParams.seed = parameters["enc"]["value"]["seed"]
+        self.encValue = Encoder(scalarEncoderParams)
+
+        self.encValue = Encoder(scalarEncoderParams)
+        encodingWidth = (self.encTimestamp.size + self.encValue.size)
+        self.enc_info = Metrics([encodingWidth], 999999999)
+
+        # Make the HTM.  SpatialPooler & TemporalMemory & associated tools.
+        # SpatialPooler
+        spParams = parameters["sp"]
+        self.sp = SpatialPooler(
+            inputDimensions=(encodingWidth,),
+            columnDimensions=(spParams["columnDimensions"],),
+            potentialRadius=encodingWidth,
+            potentialPct=spParams["potentialPct"],
+            globalInhibition=spParams["globalInhibition"],
+            localAreaDensity=spParams["localAreaDensity"],
+            numActiveColumnsPerInhArea=spParams["numActiveColumnsPerInhArea"],
+            stimulusThreshold=spParams["stimulusThreshold"],
+            synPermInactiveDec=spParams["synPermInactiveDec"],
+            synPermActiveInc=spParams["synPermActiveInc"],
+            synPermConnected=spParams["synPermConnected"],
+            boostStrength=spParams["boostStrength"],
+            wrapAround=spParams["wrapAround"],
+            minPctOverlapDutyCycle=spParams["minPctOverlapDutyCycle"],
+            dutyCyclePeriod=spParams["dutyCyclePeriod"],
+            seed=spParams["seed"],
+        )
+        self.sp_info = Metrics(self.sp.getColumnDimensions(), 999999999)
+
+        # TemporalMemory
+        tmParams = parameters["tm"]
+        self.tm = TemporalMemory(
+            columnDimensions=(spParams["columnDimensions"],),
+            cellsPerColumn=tmParams["cellsPerColumn"],
+            activationThreshold=tmParams["activationThreshold"],
+            initialPermanence=tmParams["initialPermanence"],
+            connectedPermanence=tmParams["connectedPermanence"],
+            minThreshold=tmParams["minThreshold"],
+            maxNewSynapseCount=tmParams["maxNewSynapseCount"],
+            permanenceIncrement=tmParams["permanenceIncrement"],
+            permanenceDecrement=tmParams["permanenceDecrement"],
+            predictedSegmentDecrement=tmParams["predictedSegmentDecrement"],
+            maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
+            maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"],
+            seed=tmParams["seed"]
+        )
+        self.tm_info = Metrics([self.tm.numberOfCells()], 999999999)
+
+        # setup likelihood, these settings are used in NAB
+        if self.useLikelihood:
+            anParams = parameters["anomaly"]["likelihood"]
+            learningPeriod = int(math.floor(self.probationaryPeriod / 2.0))
+            self.anomalyLikelihood = AnomalyLikelihood(
+                learningPeriod=learningPeriod,
+                estimationSamples=self.probationaryPeriod - learningPeriod,
+                reestimationPeriod=anParams["reestimationPeriod"])
+        # Predictor
+        # self.predictor = Predictor( steps=[1, 5], alpha=parameters["predictor"]['sdrc_alpha'] )
+        # predictor_resolution = 1
+
+    def modelRun(self, ts, val):
+        """
          Run a single pass through HTM model
 
          @params ts - Timestamp
          @params val - float input value
 
          @return rawAnomalyScore computed for the `val` in this step
-      """
-      ## run data through our model pipeline: enc -> SP -> TM -> Anomaly
-      self.inputs_.append( val )
-      self.iteration_ += 1
-      
-      # 1. Encoding
-      # Call the encoders to create bit representations for each value.  These are SDR objects.
-      dateBits        = self.encTimestamp.encode(ts)
-      valueBits       = self.encValue.encode(float(val))
-      # Concatenate all these encodings into one large encoding for Spatial Pooling.
-      encoding = SDR( self.encTimestamp.size + self.encValue.size ).concatenate([valueBits, dateBits])
-      self.enc_info.addData( encoding )
+        """
+        ## run data through our model pipeline: enc -> SP -> TM -> Anomaly
+        self.inputs_.append(val)
+        self.iteration_ += 1
 
-      # 2. Spatial Pooler
-      # Create an SDR to represent active columns, This will be populated by the
-      # compute method below. It must have the same dimensions as the Spatial Pooler.
-      activeColumns = SDR( self.sp.getColumnDimensions() )
-      # Execute Spatial Pooling algorithm over input space.
-      self.sp.compute(encoding, True, activeColumns)
-      self.sp_info.addData( activeColumns )
+        # 1. Encoding
+        # Call the encoders to create bit representations for each value.  These are SDR objects.
+        dateBits = self.encTimestamp.encode(ts)
+        valueBits = self.encValue.encode(float(val))
+        # Concatenate all these encodings into one large encoding for Spatial Pooling.
+        encoding = SDR(self.encTimestamp.size + self.encValue.size).concatenate([valueBits, dateBits])
+        self.enc_info.addData(encoding)
 
-      # 3. Temporal Memory
-      # Execute Temporal Memory algorithm over active mini-columns.
+        # 2. Spatial Pooler
+        # Create an SDR to represent active columns, This will be populated by the
+        # compute method below. It must have the same dimensions as the Spatial Pooler.
+        activeColumns = SDR(self.sp.getColumnDimensions())
+        # Execute Spatial Pooling algorithm over input space.
+        self.sp.compute(encoding, True, activeColumns)
+        self.sp_info.addData(activeColumns)
 
-      # to get predictive cells we need to call activateDendrites & activateCells separately
-      if PANDA_VIS_BAKE_DATA:
-        # activateDendrites calculates active segments
-        self.tm.activateDendrites(learn=True)
-        # predictive cells are calculated directly from active segments
-        predictiveCells = self.tm.getPredictiveCells()
-        # activates cells in columns by TM algorithm (winners, bursting...)
-        self.tm.activateCells(activeColumns, learn=True)
-      else:
+        # 3. Temporal Memory
+        # Execute Temporal Memory algorithm over active mini-columns.
         self.tm.compute(activeColumns, learn=True)
+        self.tm_info.addData(self.tm.getActiveCells().flatten())
 
-      self.tm_info.addData( self.tm.getActiveCells().flatten() )
+        # 4.1 (optional) Predictor #TODO optional
+        # TODO optional: also return an error metric on predictions (RMSE, R2,...)
 
-      # 4.1 (optional) Predictor #TODO optional
-      #TODO optional: also return an error metric on predictions (RMSE, R2,...)
+        # 4.2 Anomaly
+        # handle spatial, contextual (raw, likelihood) anomalies
+        # -Spatial
+        spatialAnomaly = 0.0  # TODO optional: make this computed in SP (and later improve)
+        if self.useSpatialAnomaly:
+            # Update min/max values and check if there is a spatial anomaly
+            if self.minVal != self.maxVal:
+                tolerance = (self.maxVal - self.minVal) * self.spatial_tolerance
+                maxExpected = self.maxVal + tolerance
+                minExpected = self.minVal - tolerance
+                if val > maxExpected or val < minExpected:
+                    spatialAnomaly = 1.0
+            if self.maxVal is None or val > self.maxVal:
+                self.maxVal = val
+            if self.minVal is None or val < self.minVal:
+                self.minVal = val
 
-      # 4.2 Anomaly 
-      # handle spatial, contextual (raw, likelihood) anomalies
-      # -Spatial
-      spatialAnomaly = 0.0 #TODO optional: make this computed in SP (and later improve)
-      if self.useSpatialAnomaly:
-        # Update min/max values and check if there is a spatial anomaly
-        if self.minVal != self.maxVal:
-          tolerance = (self.maxVal - self.minVal) * SPATIAL_TOLERANCE
-          maxExpected = self.maxVal + tolerance
-          minExpected = self.minVal - tolerance
-          if val > maxExpected or val < minExpected:
-            spatialAnomaly = 1.0
-        if self.maxVal is None or val > self.maxVal:
-          self.maxVal = val
-        if self.minVal is None or val < self.minVal:
-          self.minVal = val
+        # -temporal (raw)
+        raw = self.tm.anomaly
+        temporalAnomaly = raw
 
-      # -temporal (raw)
-      raw= self.tm.anomaly
-      temporalAnomaly = raw
+        if self.useLikelihood:
+            # Compute log(anomaly likelihood)
+            like = self.anomalyLikelihood.anomalyProbability(val, raw, ts)
+            logScore = self.anomalyLikelihood.computeLogLikelihood(like)
+            temporalAnomaly = logScore  # TODO optional: TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood
 
-      if self.useLikelihood:
-        # Compute log(anomaly likelihood)
-        like = self.anomalyLikelihood.anomalyProbability(val, raw, ts)
-        logScore = self.anomalyLikelihood.computeLogLikelihood(like)
-        temporalAnomaly = logScore #TODO optional: TM to provide anomaly {none, raw, likelihood}, compare correctness with the py anomaly_likelihood
+        anomalyScore = max(spatialAnomaly, temporalAnomaly) # this is the "main" anomaly, compared in NAB
 
-      anomalyScore = max(spatialAnomaly, temporalAnomaly) # this is the "main" anomaly, compared in NAB
+        # 5. print stats
+        if self.verbose and self.iteration_ % 1000 == 0:
+            print(self.enc_info)
+            print(self.sp_info)
+            print(self.tm_info)
+            pass
 
-      # 5. print stats
-      if self.verbose and self.iteration_ % 1000 == 0:
-          # print(self.enc_info)
-          # print(self.sp_info)
-          # print(self.tm_info)
-          pass
-
-      # 6. panda vis
-      if PANDA_VIS_BAKE_DATA:
-          # ------------------HTMpandaVis----------------------
-          # see more about this structure at https://github.com/htm-community/HTMpandaVis/blob/master/pandaBaker/README.md
-          # fill up values
-          pandaBaker.inputs["Value"].stringValue = "value: {:.2f}".format(val)
-          pandaBaker.inputs["Value"].bits = valueBits.sparse
-
-          pandaBaker.inputs["TimeOfDay"].stringValue = str(ts)
-          pandaBaker.inputs["TimeOfDay"].bits = dateBits.sparse
-
-          pandaBaker.layers["Layer1"].activeColumns = activeColumns.sparse
-          pandaBaker.layers["Layer1"].winnerCells = self.tm.getWinnerCells().sparse
-          pandaBaker.layers["Layer1"].predictiveCells = predictiveCells.sparse
-          pandaBaker.layers["Layer1"].activeCells = self.tm.getActiveCells().sparse
-
-          # customizable datastreams to be show on the DASH PLOTS
-          pandaBaker.dataStreams["rawAnomaly"].value = temporalAnomaly
-          pandaBaker.dataStreams["value"].value = val
-          pandaBaker.dataStreams["numberOfWinnerCells"].value = len(self.tm.getWinnerCells().sparse)
-          pandaBaker.dataStreams["numberOfPredictiveCells"].value = len(predictiveCells.sparse)
-          pandaBaker.dataStreams["valueInput_sparsity"].value = valueBits.getSparsity()
-          pandaBaker.dataStreams["dateInput_sparsity"].value = dateBits.getSparsity()
-
-          pandaBaker.dataStreams["Layer1_SP_overlap_metric"].value = self.sp_info.overlap.overlap
-          pandaBaker.dataStreams["Layer1_TM_overlap_metric"].value = self.sp_info.overlap.overlap
-          pandaBaker.dataStreams["Layer1_SP_activation_frequency"].value = self.sp_info.activationFrequency.mean()
-          pandaBaker.dataStreams["Layer1_TM_activation_frequency"].value = self.tm_info.activationFrequency.mean()
-          pandaBaker.dataStreams["Layer1_SP_entropy"].value = self.sp_info.activationFrequency.mean()
-          pandaBaker.dataStreams["Layer1_TM_entropy"].value = self.tm_info.activationFrequency.mean()
-
-          pandaBaker.StoreIteration(self.iteration_-1)
-          print("ITERATION: " + str(self.iteration_-1))
-
-          # ------------------HTMpandaVis----------------------
-
-      return (anomalyScore, raw)
-
-  # with this method, the structure for visualization is defined
-  def BuildPandaSystem(self, sp, tm, consumptionBits_size, dateBits_size):
-
-      # we have two inputs connected to proximal synapses of Layer1
-      pandaBaker.inputs["Value"] = cInput(consumptionBits_size)
-      pandaBaker.inputs["TimeOfDay"] = cInput(dateBits_size)
-
-      pandaBaker.layers["Layer1"] = cLayer(sp, tm)  # Layer1 has Spatial Pooler & Temporal Memory
-      pandaBaker.layers["Layer1"].proximalInputs = [
-          "Value",
-          "TimeOfDay",
-      ]
-      pandaBaker.layers["Layer1"].distalInputs = ["Layer1"]
-
-      # data for dash plots
-      streams = ["rawAnomaly", "value", "numberOfWinnerCells", "numberOfPredictiveCells",
-                 "valueInput_sparsity", "dateInput_sparsity", "Layer1_SP_overlap_metric", "Layer1_TM_overlap_metric",
-                 "Layer1_SP_activation_frequency", "Layer1_TM_activation_frequency", "Layer1_SP_entropy",
-                 "Layer1_TM_entropy"
-                 ]
-
-      pandaBaker.dataStreams = dict((name, cDataStream()) for name in streams)  # create dicts for more comfortable code
-      # could be also written like: pandaBaker.dataStreams["myStreamName"] = cDataStream()
-
-      pandaBaker.PrepareDatabase()
-
-
-
-# WHILE USING PANDAVIS
-# SPECIFY HERE FOR WHAT DATA YOU WANT TO RUN THIS DETECTOR
-if PANDA_VIS_BAKE_DATA:
-  import pandas as pd
-  import os.path as path
-  from nab.corpus import Corpus
-  dataDir =  path.abspath(path.join(__file__ ,"../../../..","data"))
-
-  corpus = Corpus(dataDir)
-
-  dataSet = corpus.dataFiles["artificialWithAnomaly/art_daily_flatmiddle.csv"]
-
-  detector = HtmcoreDetector(dataSet=dataSet,
-                  probationaryPercent=0.15)
-
-  detector.initialize()
-
-  detector.run()
-
-  pandaBaker.CommitBatch()
+        return anomalyScore, raw
