@@ -223,7 +223,7 @@ class HtmcoreDetector(AnomalyDetector):
         # useful for checking the efficacy of AnomalyLikelihood. You will need
         # to re-optimize the thresholds when running with this setting.
         self.useLikelihood = True
-        self.useSpatialAnomaly = True
+        self.useSpatialAnomaly = False
         self.verbose = True
 
         ## internal members
