@@ -41,16 +41,6 @@ from nab.detectors.base import AnomalyDetector
 # has been seen so far.
 SPATIAL_TOLERANCE = 0.05
 
-PANDA_VIS_BAKE_DATA = False # if we want to bake data for pandaVis tool (repo at https://github.com/htm-community/HTMpandaVis )
-
-if PANDA_VIS_BAKE_DATA:
-    from pandaBaker.pandaBaker import PandaBaker
-    from pandaBaker.pandaBaker import cLayer, cInput, cDataStream
-
-    BAKE_DATABASE_FILE_PATH = os.path.join(os.getcwd(), 'bakedDatabase', 'htmcore_detector.db')
-
-    pandaBaker = PandaBaker(BAKE_DATABASE_FILE_PATH)
-
 parameters_numenta_comparable = {
   # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
   'enc': {
@@ -238,10 +228,6 @@ class HtmcoreDetector(AnomalyDetector):
     # self.predictor = Predictor( steps=[1, 5], alpha=parameters["predictor"]['sdrc_alpha'] )
     # predictor_resolution = 1
 
-    # initialize pandaBaker
-    if PANDA_VIS_BAKE_DATA:
-      self.BuildPandaSystem(self.sp, self.tm, parameters["enc"]["value"]["size"], self.encTimestamp.size)
-
   def modelRun(self, ts, val):
       """
          Run a single pass through HTM model
@@ -273,17 +259,7 @@ class HtmcoreDetector(AnomalyDetector):
 
       # 3. Temporal Memory
       # Execute Temporal Memory algorithm over active mini-columns.
-
-      # to get predictive cells we need to call activateDendrites & activateCells separately
-      if PANDA_VIS_BAKE_DATA:
-        # activateDendrites calculates active segments
-        self.tm.activateDendrites(learn=True)
-        # predictive cells are calculated directly from active segments
-        predictiveCells = self.tm.getPredictiveCells()
-        # activates cells in columns by TM algorithm (winners, bursting...)
-        self.tm.activateCells(activeColumns, learn=True)
-      else:
-        self.tm.compute(activeColumns, learn=True)
+      self.tm.compute(activeColumns, learn=True)
 
       self.tm_info.addData( self.tm.getActiveCells().flatten() )
 
@@ -326,89 +302,6 @@ class HtmcoreDetector(AnomalyDetector):
           # print(self.tm_info)
           pass
 
-      # 6. panda vis
-      if PANDA_VIS_BAKE_DATA:
-          # ------------------HTMpandaVis----------------------
-          # see more about this structure at https://github.com/htm-community/HTMpandaVis/blob/master/pandaBaker/README.md
-          # fill up values
-          pandaBaker.inputs["Value"].stringValue = "value: {:.2f}".format(val)
-          pandaBaker.inputs["Value"].bits = valueBits.sparse
-
-          pandaBaker.inputs["TimeOfDay"].stringValue = str(ts)
-          pandaBaker.inputs["TimeOfDay"].bits = dateBits.sparse
-
-          pandaBaker.layers["Layer1"].activeColumns = activeColumns.sparse
-          pandaBaker.layers["Layer1"].winnerCells = self.tm.getWinnerCells().sparse
-          pandaBaker.layers["Layer1"].predictiveCells = predictiveCells.sparse
-          pandaBaker.layers["Layer1"].activeCells = self.tm.getActiveCells().sparse
-
-          # customizable datastreams to be show on the DASH PLOTS
-          pandaBaker.dataStreams["rawAnomaly"].value = temporalAnomaly
-          pandaBaker.dataStreams["value"].value = val
-          pandaBaker.dataStreams["numberOfWinnerCells"].value = len(self.tm.getWinnerCells().sparse)
-          pandaBaker.dataStreams["numberOfPredictiveCells"].value = len(predictiveCells.sparse)
-          pandaBaker.dataStreams["valueInput_sparsity"].value = valueBits.getSparsity()
-          pandaBaker.dataStreams["dateInput_sparsity"].value = dateBits.getSparsity()
-
-          pandaBaker.dataStreams["Layer1_SP_overlap_metric"].value = self.sp_info.overlap.overlap
-          pandaBaker.dataStreams["Layer1_TM_overlap_metric"].value = self.sp_info.overlap.overlap
-          pandaBaker.dataStreams["Layer1_SP_activation_frequency"].value = self.sp_info.activationFrequency.mean()
-          pandaBaker.dataStreams["Layer1_TM_activation_frequency"].value = self.tm_info.activationFrequency.mean()
-          pandaBaker.dataStreams["Layer1_SP_entropy"].value = self.sp_info.activationFrequency.mean()
-          pandaBaker.dataStreams["Layer1_TM_entropy"].value = self.tm_info.activationFrequency.mean()
-
-          pandaBaker.StoreIteration(self.iteration_-1)
-          print("ITERATION: " + str(self.iteration_-1))
-
-          # ------------------HTMpandaVis----------------------
-
       return (anomalyScore, raw)
 
-  # with this method, the structure for visualization is defined
-  def BuildPandaSystem(self, sp, tm, consumptionBits_size, dateBits_size):
 
-      # we have two inputs connected to proximal synapses of Layer1
-      pandaBaker.inputs["Value"] = cInput(consumptionBits_size)
-      pandaBaker.inputs["TimeOfDay"] = cInput(dateBits_size)
-
-      pandaBaker.layers["Layer1"] = cLayer(sp, tm)  # Layer1 has Spatial Pooler & Temporal Memory
-      pandaBaker.layers["Layer1"].proximalInputs = [
-          "Value",
-          "TimeOfDay",
-      ]
-      pandaBaker.layers["Layer1"].distalInputs = ["Layer1"]
-
-      # data for dash plots
-      streams = ["rawAnomaly", "value", "numberOfWinnerCells", "numberOfPredictiveCells",
-                 "valueInput_sparsity", "dateInput_sparsity", "Layer1_SP_overlap_metric", "Layer1_TM_overlap_metric",
-                 "Layer1_SP_activation_frequency", "Layer1_TM_activation_frequency", "Layer1_SP_entropy",
-                 "Layer1_TM_entropy"
-                 ]
-
-      pandaBaker.dataStreams = dict((name, cDataStream()) for name in streams)  # create dicts for more comfortable code
-      # could be also written like: pandaBaker.dataStreams["myStreamName"] = cDataStream()
-
-      pandaBaker.PrepareDatabase()
-
-
-
-# WHILE USING PANDAVIS
-# SPECIFY HERE FOR WHAT DATA YOU WANT TO RUN THIS DETECTOR
-if PANDA_VIS_BAKE_DATA:
-  import pandas as pd
-  import os.path as path
-  from nab.corpus import Corpus
-  dataDir =  path.abspath(path.join(__file__ ,"../../../..","data"))
-
-  corpus = Corpus(dataDir)
-
-  dataSet = corpus.dataFiles["artificialWithAnomaly/art_daily_flatmiddle.csv"]
-
-  detector = HtmcoreDetector(dataSet=dataSet,
-                  probationaryPercent=0.15)
-
-  detector.initialize()
-
-  detector.run()
-
-  pandaBaker.CommitBatch()
