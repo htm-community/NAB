@@ -1,5 +1,5 @@
 pandas>=0.20.3
 simplejson>=3.11.1
 plotly>=3.10.0 #required for scripts/plot
-htm.core>=2.1.1
+htm.core>=2.1.15
 docker>=4.2.0 #optional for using parameter optimization
