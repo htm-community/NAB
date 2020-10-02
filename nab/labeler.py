@@ -106,7 +106,7 @@ class CorpusLabel(object):
   benchmark corpus.
   """
 
-  def __init__(self, path, corpus):
+  def __init__(self, path, corpus, remove_duplicates=False):
     """
     Initializes a CorpusLabel object by getting the anomaly windows and labels.
     When this is done for combining raw user labels, we skip getLabels()
@@ -114,6 +114,7 @@ class CorpusLabel(object):
 
     @param path    (string)      Name of file containing the set of labels.
     @param corpus  (nab.Corpus)  Corpus object.
+    @param remove_duplicates (bool) Whether to remove duplicate rows in the label data
     """
     self.path = path
 
@@ -125,7 +126,7 @@ class CorpusLabel(object):
 
     if "raw" not in self.path:
       # Do not get labels from files in the path nab/labels/raw
-      self.getLabels()
+      self.getLabels(remove_duplicates)
 
 
   def getWindows(self):
@@ -192,7 +193,7 @@ class CorpusLabel(object):
           raise ValueError("In the label file %s, windows overlap." % self.path)
 
 
-  def getLabels(self):
+  def getLabels(self, remove_duplicates=False):
     """
     Get Labels as a dictionary of key-value pairs of a relative path and its
     corresponding binary vector of anomaly labels. Labels are simply a more
@@ -212,6 +213,10 @@ class CorpusLabel(object):
           betweenT1AndT2 = moreThanT1[moreThanT1["timestamp"] <= t2]
           indices = betweenT1AndT2.loc[:,"label"].index
           labels["label"].values[indices.values] = 1
+
+        # remove duplicate rows (somehow they snuck in for certain datasets)
+        if remove_duplicates:
+            labels = labels.drop_duplicates(subset=['timestamp'])
 
         self.labels[relativePath] = labels
 
