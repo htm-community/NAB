@@ -87,10 +87,10 @@ class Runner(object):
     self.profiles = None
 
 
-  def initialize(self):
+  def initialize(self, remove_duplicate_labels=False):
     """Initialize all the relevant objects for the run."""
     self.corpus = Corpus(self.dataDir)
-    self.corpusLabel = CorpusLabel(path=self.labelPath, corpus=self.corpus)
+    self.corpusLabel = CorpusLabel(path=self.labelPath, corpus=self.corpus, remove_duplicates=remove_duplicate_labels)
 
     with open(self.profilesPath) as p:
       self.profiles = json.load(p)

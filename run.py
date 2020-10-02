@@ -89,7 +89,7 @@ def main(args):
                   thresholdPath=thresholdsFile,
                   numCPUs=numCPUs)
 
-  runner.initialize()
+  runner.initialize(args.removeDuplicateLabels)
 
   if args.detect:
     detectorConstructors = getDetectorClassConstructors(args.detectors)
@@ -139,6 +139,11 @@ if __name__ == "__main__":
 
   parser.add_argument("--skipConfirmation",
                     help="If specified will skip the user confirmation step",
+                    default=False,
+                    action="store_true")
+
+  parser.add_argument("--removeDuplicateLabels",
+                    help="If specified will remove any duplicate rows from the labeled NAB data",
                     default=False,
                     action="store_true")
 
