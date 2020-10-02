@@ -301,6 +301,7 @@ class Sweeper(object):
       scores      (list) List of per-row scores, to be saved in score file
       matchingRow (ThresholdScore)
     """
+    threshold = float(threshold)
     anomalyList = self.calcSweepScore(
       timestamps, anomalyScores, windowLimits, dataSetName)
     scoresByThreshold = self.calcScoreByThreshold(anomalyList)
@@ -308,10 +309,10 @@ class Sweeper(object):
     matchingRow = None
     prevRow = None
     for thresholdScore in scoresByThreshold:
-      if thresholdScore.threshold == threshold:
+      if float(thresholdScore.threshold) == threshold:
         matchingRow = thresholdScore
         break
-      elif thresholdScore.threshold < threshold:
+      elif float(thresholdScore.threshold) < threshold:
         matchingRow = prevRow
         break
 

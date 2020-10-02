@@ -213,6 +213,9 @@ class CorpusLabel(object):
           indices = betweenT1AndT2.loc[:,"label"].index
           labels["label"].values[indices.values] = 1
 
+        # remove duplicate rows (somehow they snuck in for certain datasets)
+        labels = labels.drop_duplicates(subset=['timestamp'])
+
         self.labels[relativePath] = labels
 
       else:
