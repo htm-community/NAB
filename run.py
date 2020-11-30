@@ -161,7 +161,7 @@ if __name__ == "__main__":
                     type=str,
                     default=["numenta", "numentaTM", "htmcore", "htmjava", "null", "random",
                              "bayesChangePt", "windowedGaussian", "expose",
-                             "relativeEntropy", "earthgeckoSkyline"],
+                             "relativeEntropy", "earthgeckoSkyline", "naive"],
                     help="Comma separated list of detector(s) to use, e.g. "
                          "null,numenta")
 
@@ -227,6 +227,8 @@ if __name__ == "__main__":
     ContextOSEDetector )
   if "earthgeckoSkyline" in args.detectors:
     from nab.detectors.earthgecko_skyline.earthgecko_skyline_detector import EarthgeckoSkylineDetector
+  if "naive" in args.detectors:
+    from nab.detectors.naive.naive_detector import NaiveDetector
   if "htmcore" in args.detectors:
     from nab.detectors.htmcore.htmcore_detector import HtmcoreDetector
   if "threshold" in args.detectors:

@@ -29,6 +29,11 @@
         "reward_low_FP_rate": 43.40851703291233,
         "standard": 57.99434335898808
     },
+    "naive": {
+        "reward_low_FN_rate": 0.0,
+        "reward_low_FP_rate": 0.0,
+        "standard": 0.0
+    },
     "null": {
         "reward_low_FN_rate": 0.0,
         "reward_low_FP_rate": 0.0,
